@@ -36,7 +36,6 @@ SOFTWARE.
 '''
 
 import glob
-from random import randint
 import sys
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -44,7 +43,6 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 import nibabel as nib
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
-
 
 
 class TfdataPipeline:
@@ -113,12 +111,34 @@ class TfdataPipeline:
         path = path.numpy().decode('ascii')
         assert os.path.exists(path), f"file {path} does not exist"
 
-        nib_vol =  nib.load(path)
-        vol     =  tf.cast(nib_vol.get_fdata(), tf.float32)
+        vol = nib.load(path)
+        vol = tf.cast(vol.get_fdata(), tf.float32)
 
         return vol
+
+    def _crop_volume(self, volume:tf.Tensor) -> tf.Tensor:
+        if len(volume.shape) == 4:
+            volume = tf.expand_dims(volume, axis=0)
+        elif len(volume.shape) == 3:
+            volume = tf.expand_dims(volume, axis=-1)
+            volume = tf.expand_dims(volume, axis=0)
+        elif len(volume.shape) < 3:
+            tf.print("Volume can't have 2 or less dims")
+        
+        crop_top_h          = int(tf.math.ceil((volume.shape[1]-self.IMG_H)/2))
+        crop_bottom_h       = int(tf.math.floor((volume.shape[1]-self.IMG_H)/2))
+        crop_top_w          = int(tf.math.ceil((volume.shape[2]-self.IMG_W)/2))
+        crop_bottom_w       = int(tf.math.floor((volume.shape[2]-self.IMG_W)/2))
+        crop_top_d          = int(tf.math.ceil((volume.shape[3]-self.IMG_D)/2))
+        crop_bottom_d       = int(tf.math.floor((volume.shape[3]-self.IMG_D)/2))
+
+        cropped_volume = tf.keras.layers.Cropping3D(cropping=((crop_top_h,crop_bottom_h) , (crop_top_w,crop_bottom_w), (crop_top_d,crop_bottom_d)))(volume)
+        cropped_volume = tf.squeeze(cropped_volume, axis=0)
+
+        return cropped_volume
+
     
-    def _read_and_combine_volumes(self, path_l: list)-> tf.Tensor:
+    def _read_and_combine_volumes(self, path_l: tf.Tensor)-> tf.Tensor:
         assert len(path_l) == 3
         t2_volume           = self._read_volumes(path_l[0])
         t1ce_volume         = self._read_volumes(path_l[1])
@@ -126,26 +146,15 @@ class TfdataPipeline:
 
         combined_vol        = tf.stack([t2_volume,t1ce_volume,flair_volume], axis=-1)
         combined_vol        = (combined_vol - tf.reduce_min(combined_vol)) / (tf.reduce_max(combined_vol) - tf.reduce_min(combined_vol))
-        combined_vol        = tf.expand_dims(combined_vol, axis=0)
 
-        crop_top_h          = int(tf.math.ceil((combined_vol.shape[1]-self.IMG_H)/2))
-        crop_bottom_h       = int(tf.math.floor((combined_vol.shape[1]-self.IMG_H)/2))
-        crop_top_w          = int(tf.math.ceil((combined_vol.shape[2]-self.IMG_W)/2))
-        crop_bottom_w       = int(tf.math.floor((combined_vol.shape[2]-self.IMG_W)/2))
-        crop_top_d          = int(tf.math.ceil((combined_vol.shape[3]-self.IMG_D)/2))
-        crop_bottom_d       = int(tf.math.floor((combined_vol.shape[3]-self.IMG_D)/2))
-
-        cropped_combine_vol = tf.keras.layers.Cropping3D(cropping=((crop_top_h,crop_bottom_h) , (crop_top_w,crop_bottom_w), (crop_top_d,crop_bottom_d)))(combined_vol)
-        cropped_combine_vol = tf.squeeze(cropped_combine_vol)
+        cropped_combine_vol = self._crop_volume(combined_vol)
 
         return cropped_combine_vol
 
     def _read_seg_volumes(self, path:tf.Tensor) -> tf.Tensor:
-        path = path.numpy().decode('ascii')
-        assert os.path.exists(path), f"file {path} does not exist"
 
-        nib_vol = nib.load(path)
-        seg_vol = nib_vol.get_fdata()
+        seg_vol = self._read_volumes(path=path)
+        seg_vol = seg_vol.numpy()
 
         seg_label_1 = seg_vol==1
         seg_label_2 = seg_vol==2
@@ -158,20 +167,10 @@ class TfdataPipeline:
         final_seg_vol[:,:,:,2] = seg_label_3
         
         final_seg_vol = tf.cast(final_seg_vol, dtype=tf.uint8)
-        final_seg_vol = tf.expand_dims(final_seg_vol, axis=0)
+        
+        cropped_seg_vol = self._crop_volume(final_seg_vol)
 
-        crop_top_h    = int(tf.math.ceil((final_seg_vol.shape[1]-self.IMG_H)/2))
-        crop_bottom_h = int(tf.math.floor((final_seg_vol.shape[1]-self.IMG_H)/2))
-        crop_top_w    = int(tf.math.ceil((final_seg_vol.shape[2]-self.IMG_W)/2))
-        crop_bottom_w = int(tf.math.floor((final_seg_vol.shape[2]-self.IMG_W)/2))
-        crop_top_d    = int(tf.math.ceil((final_seg_vol.shape[3]-self.IMG_D)/2))
-        crop_bottom_d = int(tf.math.floor((final_seg_vol.shape[3]-self.IMG_D)/2))
-
-
-        croped_seg_vol = tf.keras.layers.Cropping3D(cropping=((crop_top_h,crop_bottom_h) , (crop_top_w,crop_bottom_w), (crop_top_d,crop_bottom_d)))(final_seg_vol)
-        croped_seg_vol = tf.squeeze(croped_seg_vol)
-
-        return croped_seg_vol
+        return cropped_seg_vol
     
     def _map_dataset(self, mri_path:tf.Tensor, seg_path:tf.Tensor)->tuple:
         mri_path = tf.squeeze(mri_path)
