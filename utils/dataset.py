@@ -160,13 +160,13 @@ class TfdataPipeline:
         seg_label_2 = seg_vol==2
         seg_label_3 = seg_vol==4
         
-        final_seg_vol          = tf.zeros([seg_vol.shape[0], seg_vol.shape[1], seg_vol.shape[2], 3], dtype=tf.uint8)
+        final_seg_vol          = tf.zeros([seg_vol.shape[0], seg_vol.shape[1], seg_vol.shape[2], 3], dtype=tf.float32)
         final_seg_vol          = final_seg_vol.numpy()
         final_seg_vol[:,:,:,0] = seg_label_1
         final_seg_vol[:,:,:,1] = seg_label_2
         final_seg_vol[:,:,:,2] = seg_label_3
         
-        final_seg_vol = tf.cast(final_seg_vol, dtype=tf.uint8)
+        final_seg_vol = tf.cast(final_seg_vol, dtype=tf.float32)
         
         cropped_seg_vol = self._crop_volume(final_seg_vol)
 
@@ -178,7 +178,7 @@ class TfdataPipeline:
             X = self._read_and_combine_volumes(mri_path)
             Y = self._read_seg_volumes(seg_path)
             return X,Y
-        X,Y = tf.py_function(func=_map,inp=[mri_path,seg_path], Tout=[tf.float32, tf.uint8])
+        X,Y = tf.py_function(func=_map,inp=[mri_path,seg_path], Tout=[tf.float32, tf.float32])
         return X,Y
     
     def _tf_dataset(self, mri_path: list, seg_path: list) -> tf.data.Dataset:
