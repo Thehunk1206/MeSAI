@@ -66,15 +66,24 @@ class Conv3d_module(tf.keras.layers.Layer):
 
         self.relu2 = tf.keras.layers.ReLU()
 
+        self.conv3d_3 = tf.keras.layers.Conv3D(
+            filters=self.filters,
+            kernel_size=self.kernel_size,
+            strides=self.stride,
+            padding=self.padding,
+            kernel_regularizer=tf.keras.regularizers.L2(l2=1e-5)
+        )
+
         self.add = tf.keras.layers.Add()
 
-    def call(self, inputs:tf.Tensor,training:bool = False, **kwargs):
+    def call(self, inputs:tf.Tensor,training:bool = False, **kwargs) -> tf.Tensor:
         x_shortcut = self.conv3d_1(inputs) 
         x = self.group_norm_1(x_shortcut, training = training)
         x = self.relu1(x)
         x = self.conv3d_2(x)
         x = self.group_norm_2(x, training= training)
         x = self.relu2(x)
+        x = self.conv3d_3(x)
         output = self.add([x,x_shortcut])
 
         return output
