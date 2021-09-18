@@ -56,41 +56,27 @@ class SoftDiceLoss(tf.keras.losses.Loss):
         return super().from_config(config)
 
 
-class L2_loss(tf.keras.losses.Loss):
-    def __init__(self, name: str,):
-        super(L2_loss, self).__init__(name=name)
+
+class VAE_loss(tf.keras.losses.Loss):
+    def __init__(self, name: str, weight_l2: float = 0.1, weight_kl:float = 0.1):
+        super(VAE_loss, self).__init__(name=name)
+        self.weight_l2 = weight_l2
+        self.weight_kl = weight_kl
 
     @tf.function
-    def call(self, y_mask: tf.Tensor, y_pred: tf.Tensor):
+    def call(self, y_mask: tf.Tensor,y_pred: tf.Tensor, z_mean:tf.Tensor, z_var:tf.Tensor):
         assert len(y_mask.shape) == 5, f"y_mask should be of rank 5 but got {len(y_mask.shape)} with shape as {y_mask.shape}"
         assert len(y_pred.shape) == 5, f"y_pred should be of rank 5 but got {len(y_pred.shape)} with shape as {y_pred.shape}"
-
-        l2_loss = tf.reduce_mean(tf.square(y_mask - y_pred))
-
-        return l2_loss
-
-    def get_config(self):
-        return super().get_config()
-
-    @classmethod
-    def from_config(cls, config):
-        return super().from_config(config)
-
-
-class KL_loss(tf.keras.losses.Loss):
-    def __init__(self, name: str,):
-        super(KL_loss, self).__init__(name=name)
-
-    @tf.function
-    def call(self, y_mask: tf.Tensor,z_mean:tf.Tensor, z_var:tf.Tensor):
-        assert len(y_mask.shape) == 5, f"y_mask should be of rank 5 but got {len(y_mask.shape)} with shape as {y_mask.shape}"
 
         B,H,W,D,C = y_mask.shape
         N = B*H*W*D*C
 
+        l2_loss = tf.reduce_mean(tf.square(y_mask - y_pred))
         kl_loss = (1/N) * tf.reduce_sum(tf.math.exp(z_var) + tf.square(z_mean) -1.0 - z_var, axis=0)
 
-        return kl_loss
+        vae_loss = self.weight_l2 * l2_loss + self.weight_kl * kl_loss
+
+        return vae_loss
 
     def get_config(self):
         return super().get_config()
@@ -105,16 +91,11 @@ if __name__ == "__main__":
     y_pred = tf.abs(tf.random.normal([1,160,192,128,3]))
     y_mask = tf.abs(tf.random.normal([1,160,192,128,3]))
 
-    soft_dice_loss = SoftDiceLoss(name='sotf_dice_loss')
-    l2_loss = L2_loss(name='L2 Loss')
-    kl_los = KL_loss(name='kl divergence')    
+    soft_dice_loss = SoftDiceLoss(name='sotf_dice_loss') 
 
     total_soft_dice_loss =  soft_dice_loss(y_mask,y_pred)
-    total_l2_loss        =  l2_loss(y_mask,y_pred)
-    total_kl_loss        =  kl_los(y_mask,)
 
     tf.print(
         f"soft_dice_loss: {total_soft_dice_loss}\n",
-        f"L2 loss: {total_l2_loss}"
         )
     # tf.print(y_mask.shape)
