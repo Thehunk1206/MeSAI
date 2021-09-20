@@ -167,9 +167,13 @@ class VAE_decoder(tf.keras.layers.Layer):
         return super().from_config(config)
 
 if __name__ == "__main__":
-    vae = VAE_decoder(name='enc_1')
+
+    x = tf.ones(shape=(1, 5, 6, 4, 256))
+    _, h, w, d, c  = tf.shape(x)
+    
+    vae = VAE_decoder(name='enc_1', feat_h=h, feat_w=w, feat_d=d, feat_c=c)
     # first call to the `vae` will create weights
-    y = vae(tf.ones(shape=(1, 5, 6, 4, 256)))
+    y = vae(x)
 
     print("weights:", len(vae.weights))
     print("trainable weights:", len(vae.trainable_weights))
