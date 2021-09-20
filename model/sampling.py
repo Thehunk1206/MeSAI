@@ -26,6 +26,35 @@ SOFTWARE.
 
 import tensorflow as tf
 
-class sampling(tf.keras.layers.Layer):
-    def __init__(self, trainable, name, dtype, dynamic, **kwargs):
-        super().__init__(trainable=trainable, name=name, dtype=dtype, dynamic=dynamic, **kwargs)
+class Sampling(tf.keras.layers.Layer):
+    def __init__(self, name:str, **kwargs):
+        super(Sampling, self).__init__(name=name,  **kwargs)
+
+    def call(self, z_mean: tf.Tensor, z_log_var: tf.Tensor, **kwargs)->tf.Tensor:
+        assert len(z_mean.shape) == len(z_log_var.shape) == 2,  f'Shape of z_mean should be (batch,dim), given shape for z_mean: {z_mean.shape}' \
+                                                                f'and for z_log_var: {z_log_var.shape}'
+        assert z_mean.shape == z_log_var.shape, f'shapes are incomaptible, shape of z_mean: {z_mean.shape}, shape of z_log_var: {z_log_var.shape} '
+
+        batch = tf.shape(z_mean)[0]
+        dims  = tf.shape(z_mean)[1]
+
+        epsilon = tf.random.normal(shape=(batch,dims))
+
+        return z_mean + tf.math.exp(0.5 * z_log_var) * epsilon
+    
+    def get_config(self):
+        return super(Sampling, self).get_config()
+
+    @classmethod
+    def from_config(cls, config):
+        return super().from_config(config)
+    
+if __name__ == "__main__":
+    sampling = Sampling(name='sampling_1')
+    y = sampling(z_mean=tf.ones(shape=(5, 128)), z_log_var= tf.random.normal([5,128]))
+
+    print("weights:", len(sampling.weights))
+    print("trainable weights:", len(sampling.trainable_weights))
+    print("config:", sampling.get_config())
+    print(f"Y: {y.shape}")
+

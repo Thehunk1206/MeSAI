@@ -28,14 +28,16 @@ import tensorflow as tf
 from conv3d_module import Conv3d_module
 
 class Encoder3D(tf.keras.layers.Layer):
-    def __init__(self, **kwargs):
-        super(Encoder3D, self).__init__(**kwargs)
+    def __init__(self, name:str, **kwargs):
+        super(Encoder3D, self).__init__(name=name,**kwargs)
 
+        self._L2_reg_f = 1e-5
         self.conv3d_1 = tf.keras.layers.Conv3D(
             filters=32,
             kernel_size= (3,3,3),
             strides=(1,1,1),
-            padding='same'
+            padding='same',
+            kernel_regularizer=tf.keras.regularizers.L2(self._L2_reg_f)
         )
 
         self.spatial_dropout3d = tf.keras.layers.SpatialDropout3D(0.2)
@@ -47,6 +49,7 @@ class Encoder3D(tf.keras.layers.Layer):
             kernel_size=32,
             strides=(2,2,2),
             padding='same',
+            kernel_regularizer=tf.keras.regularizers.L2(self._L2_reg_f)
         )
 
         self.conv3d_module_2 = Conv3d_module(filters=64)
@@ -58,6 +61,7 @@ class Encoder3D(tf.keras.layers.Layer):
             kernel_size=32,
             strides=(2,2,2),
             padding='same',
+            kernel_regularizer=tf.keras.regularizers.L2(self._L2_reg_f)
         )
 
         self.conv3d_module_3 = Conv3d_module(filters=128)
@@ -68,14 +72,15 @@ class Encoder3D(tf.keras.layers.Layer):
             kernel_size=32,
             strides=(2,2,2),
             padding='same',
+            kernel_regularizer=tf.keras.regularizers.L2(self._L2_reg_f)
         )
 
         self.conv3d_module_4 = Conv3d_module(filters=256)
         self.conv3d_module_5 = Conv3d_module(filters=256)
         self.conv3d_module_out_5 = Conv3d_module(filters=256)
 
-    def call(self, inputs: tf.Tensor, **kwargs) -> tf.Tensor:
-        assert len(inputs.shape) == 5, f'Input tensor should be of 5D dim, given dim was {inputs.shape}'
+    def call(self, inputs: tf.Tensor, **kwargs) -> tuple:
+        assert len(inputs.shape) == 5, f'Input tensor should be of 5D dim, given dim was {len(inputs.shape)}'
         x = self.conv3d_1(inputs)
         x = self.spatial_dropout3d(x)
 
@@ -94,7 +99,7 @@ class Encoder3D(tf.keras.layers.Layer):
         x = self.conv3d_module_5(x)
         x_out4 = self.conv3d_module_out_5(x)
 
-        return x_out1, x_out2, x_out3, x_out4
+        return x_out1, x_out2, x_out3, x_out4 # out1-> c,h,w,d,32  out2-> c,h,w,d,64  out3-> c,h,w,d,128  out4-> c,h,w,d,256  
 
     def get_config(self):
         return super(Encoder3D,self).get_config()
@@ -104,7 +109,7 @@ class Encoder3D(tf.keras.layers.Layer):
         return super().from_config(config)
 
 if __name__ == "__main__":
-    encoder = Encoder3D()
+    encoder = Encoder3D(name='enc_1')
     # first call to the `encoder` will create weights
     y = encoder(tf.ones(shape=(1, 40, 48, 32, 3)))
 
