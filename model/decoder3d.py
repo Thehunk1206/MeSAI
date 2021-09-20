@@ -135,5 +135,5 @@ if __name__ == "__main__":
     print("weights:", len(decoder.weights))
     print("trainable weights:", len(decoder.trainable_weights))
     print("config:", decoder.get_config())
-    print(f"Y: {y[-1].shape}")
+    print(f"Y: {y.shape}")
 
