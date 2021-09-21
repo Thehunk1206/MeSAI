@@ -30,13 +30,12 @@ from group_norm import GroupNormalization
 from conv3d_module import Conv3d_module
 
 class VAE_decoder(tf.keras.Model):
-    def __init__(self, name:str, feat_h:int, feat_w:int, feat_d:int, feat_c:int, **kwargs):
+    def __init__(self, name:str, feat_h:int, feat_w:int, feat_d:int, **kwargs):
         super(VAE_decoder, self).__init__(name=name,  **kwargs)
 
         self.feat_h = feat_h
         self.feat_w = feat_w
         self.feat_d = feat_d
-        self.feat_c = feat_c
         self._L2_reg_f = 1e-5
 
         self.group_norm = GroupNormalization(groups=8)
@@ -57,9 +56,9 @@ class VAE_decoder(tf.keras.Model):
 
         self.sampling = Sampling(name='sampling_1')
 
-        self.dense2 = tf.keras.layers.Dense(units=((self.feat_h//2) * (self.feat_w//2) * (self.feat_d//2) * (self.feat_c//16)))
+        self.dense2 = tf.keras.layers.Dense(units=((self.feat_h) * (self.feat_w) * (self.feat_d) * 1))
         self.relu2 = tf.keras.layers.ReLU()
-        self.reshape = tf.keras.layers.Reshape(target_shape=((self.feat_h//2), (self.feat_w//2), (self.feat_d//2), (self.feat_c//16)))
+        self.reshape = tf.keras.layers.Reshape(target_shape=((self.feat_h), (self.feat_w), (self.feat_d), 1))
 
         self.conv2 = tf.keras.layers.Conv3D(
             filters=128,
@@ -162,6 +161,15 @@ class VAE_decoder(tf.keras.Model):
 
         return z_mean_out, z_var_out, x_vae_out
     
+    def compile(
+        self, optimizer:tf.keras.optimizers.Optimizer, 
+        loss:tf.losses.Loss, 
+        loss_weights=None, 
+        **kwargs
+    ):
+        return super(VAE_decoder, self).compile(optimizer=optimizer, loss=loss,  loss_weights=loss_weights, **kwargs)
+        
+
     def summary(self):
         x = tf.keras.Input(shape=(self.feat_h, self.feat_w, self.feat_d, self.feat_c))
         model = tf.keras.Model(inputs=[x], outputs=self.call(x), name='3D_VAE_Decoder')
@@ -172,7 +180,6 @@ class VAE_decoder(tf.keras.Model):
             'feat_h': self.feat_h,
             'feat_w': self.feat_w,
             'feat_d': self.feat_d,
-            'feat_c': self.feat_c
         }
         return config
     
@@ -182,10 +189,10 @@ class VAE_decoder(tf.keras.Model):
 
 if __name__ == "__main__":
 
-    x = tf.ones(shape=(1, 20, 24, 16, 256))
-    _, h, w, d, c  = x.shape.as_list()
+    x = tf.ones(shape=(1, 10, 12, 8, 256))
+    _, h, w, d, _  = x.shape.as_list()
 
-    vae = VAE_decoder(name='enc_1', feat_h=h, feat_w=w, feat_d=d, feat_c=c)
+    vae = VAE_decoder(name='enc_1', feat_h=h, feat_w=w, feat_d=d)
     # first call to the `vae` will create weights
     y = vae(x)
 

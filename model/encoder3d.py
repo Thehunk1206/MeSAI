@@ -116,4 +116,6 @@ if __name__ == "__main__":
     print("weights:", len(encoder.weights))
     print("trainable weights:", len(encoder.trainable_weights))
     print("config:", encoder.get_config())
-    print(f"Y: {y[-1].shape}")
+    
+    for out in y:
+        tf.print(out.shape)
