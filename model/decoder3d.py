@@ -123,10 +123,10 @@ class Decoder3D(tf.keras.layers.Layer):
 if __name__ == "__main__":
     decoder = Decoder3D(name='decoder_1', number_of_class=3)
     # first call to the `decoder` will create weights
-    feature_1 = tf.ones(shape=(1,40,48,32,32))
-    feature_2 = tf.ones(shape=(1,20,24,16,64))
-    feature_3 = tf.ones(shape=(1,10,12,8,128))
-    feature_4 = tf.ones(shape=(1,5,6,4,256))
+    feature_1 = tf.ones(shape=(1,160,192,128,32))
+    feature_2 = tf.ones(shape=(1,80,96,64,64))
+    feature_3 = tf.ones(shape=(1,40,48,32,128))
+    feature_4 = tf.ones(shape=(1,20,24,16,256))
 
     inputs = (feature_1, feature_2, feature_3, feature_4)
 
