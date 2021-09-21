@@ -163,7 +163,7 @@ class VAE_decoder(tf.keras.Model):
     
     def summary(self):
         x = tf.keras.Input(shape=(1,self.feat_h, self.feat_w, self.feat_d, self.feat_c))
-        model = tf.keras.Model(inputs=[x], outputs=self.call(x, training=True))
+        model = tf.keras.Model(inputs=[x], outputs=self.call(x), name='3D_VAE_Decoder')
         return model.summary()
 
     def get_config(self):
