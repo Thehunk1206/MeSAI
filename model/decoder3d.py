@@ -109,7 +109,7 @@ class Decoder3D(tf.keras.layers.Layer):
         return x_out
     
     def get_config(self):
-        config = super().get_config()
+        config = super(Decoder3D, self).get_config()
         config.update({
             'number of class' : self.number_of_class
         })

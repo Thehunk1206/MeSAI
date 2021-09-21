@@ -39,10 +39,11 @@ class Unet3D(tf.keras.Model):
         self.decoder = Decoder3D(name='decoder3d', number_of_class=self.number_of_class)
 
     def call(self, inputs:tf.Tensor, training:bool=None)->tf.Tensor:
-        x_32, x_64, x_128, x_256 = self.encoder(inputs)
-        output =  self.decoder((x_32, x_64, x_128, x_256))
+        x_32, x_64, x_128, x_256    = self.encoder(inputs)
+        output                      = self.decoder((x_32, x_64, x_128, x_256))
 
-        return output
+        # returning x_256 as input for VAE_decoder3d
+        return output, x_256
 
     def compile(
         self, optimizer:tf.keras.optimizers.Optimizer, 
@@ -75,6 +76,6 @@ if __name__ == "__main__":
     tf.print("weights:", len(unet.weights))
     tf.print("trainable weights:", len(unet.trainable_weights))
     tf.print("config:", unet.get_config())
-    tf.print(y.shape)
+    tf.print(y[0].shape)
     tf.print(unet.summary())
     

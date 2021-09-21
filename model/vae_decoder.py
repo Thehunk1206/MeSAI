@@ -185,7 +185,7 @@ class VAE_decoder(tf.keras.Model):
     
     @classmethod
     def from_config(cls, config):
-        return super().from_config(config)
+        return cls(**config)
 
 if __name__ == "__main__":
 
