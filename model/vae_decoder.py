@@ -177,7 +177,7 @@ class VAE_decoder(tf.keras.layers.Layer):
 
 if __name__ == "__main__":
 
-    x = tf.ones(shape=(4, 5, 6, 4, 256))
+    x = tf.ones(shape=(1, 20, 24, 16, 256))
     _, h, w, d, c  = tf.shape(x)
 
     vae = VAE_decoder(name='enc_1', feat_h=h, feat_w=w, feat_d=d, feat_c=c)
