@@ -29,7 +29,7 @@ from sampling import Sampling
 from group_norm import GroupNormalization
 from conv3d_module import Conv3d_module
 
-class VAE_decoder(tf.keras.layers.Layer):
+class VAE_decoder(tf.keras.Model):
     def __init__(self, name:str, feat_h:int, feat_w:int, feat_d:int, feat_c:int, **kwargs):
         super(VAE_decoder, self).__init__(name=name,  **kwargs)
 
@@ -160,6 +160,11 @@ class VAE_decoder(tf.keras.layers.Layer):
         x_vae_out = self.conv7_out(x)
 
         return z_mean_out, z_var_out, x_vae_out
+    
+    def summary(self):
+        x = tf.keras.Input(shape=(self.feat_h, self.feat_w, self.feat_d, self.feat_c))
+        model = tf.keras.Model(inputs=[x], outputs=self.call(x, training=True))
+        return model.summary()
 
     def get_config(self):
         config = super().get_config()
@@ -184,7 +189,9 @@ if __name__ == "__main__":
     # first call to the `vae` will create weights
     y = vae(x)
 
-    print("weights:", len(vae.weights))
-    print("trainable weights:", len(vae.trainable_weights))
-    print("config:", vae.get_config())
-    print(f"Y: {y[-1].shape}")
+    tf.print("weights:", len(vae.weights))
+    tf.print("trainable weights:", len(vae.trainable_weights))
+    tf.print("config:", vae.get_config())
+    tf.print(f"Y: {y[-1].shape}")
+    tf.print(vae.summary())
+    
