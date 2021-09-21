@@ -100,7 +100,15 @@ class VAE_decoder(tf.keras.layers.Layer):
         self.upsample_conv5 = tf.keras.layers.UpSampling3D(size=(2,2,2))
         self.conv_module_3 = Conv3d_module(filters=32)
 
-        self.conv6_out = tf.keras.layers.Conv3D(
+        self.conv6 = tf.keras.layers.Conv3D(
+            filters=16,
+            kernel_size=(3,3,3),
+            strides=(1,1,1),
+            padding='same',
+            kernel_regularizer= tf.keras.regularizers.L2(l2=self._L2_reg_f)
+        )
+
+        self.conv7_out = tf.keras.layers.Conv3D(
             filters=3,
             kernel_size=(1,1,1),
             strides=(1,1,1),
@@ -147,8 +155,9 @@ class VAE_decoder(tf.keras.layers.Layer):
         x           = self.upsample_conv5(x)
         x           = self.conv_module_3(x)
 
-        #conv6(3) -> reconstructed output
-        x_vae_out = self.conv6_out(x)
+        #conv6(16) + conv7_out(3) -> reconstructed output
+        x           = self.conv6(x)
+        x_vae_out = self.conv7_out(x)
 
         return z_mean_out, z_var_out, x_vae_out
 
