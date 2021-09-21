@@ -189,10 +189,10 @@ class VAE_decoder(tf.keras.Model):
 
 if __name__ == "__main__":
 
-    x = tf.ones(shape=(1, 10, 12, 8, 256))
+    x = tf.ones(shape=(1, 20, 24, 16, 256))
     _, h, w, d, _  = x.shape.as_list()
 
-    vae = VAE_decoder(name='enc_1', feat_h=h, feat_w=w, feat_d=d)
+    vae = VAE_decoder(name='enc_1', feat_h=h/2, feat_w=w/2, feat_d=d/2)
     # first call to the `vae` will create weights
     y = vae(x)
 
