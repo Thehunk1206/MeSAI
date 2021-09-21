@@ -111,7 +111,7 @@ class Encoder3D(tf.keras.layers.Layer):
 if __name__ == "__main__":
     encoder = Encoder3D(name='enc_1')
     # first call to the `encoder` will create weights
-    y = encoder(tf.ones(shape=(1, 40, 48, 32, 3)))
+    y = encoder(tf.ones(shape=(1, 160, 192, 32, 3)))
 
     print("weights:", len(encoder.weights))
     print("trainable weights:", len(encoder.trainable_weights))
