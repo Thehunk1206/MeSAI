@@ -26,8 +26,8 @@ SOFTWARE.
 
 import tensorflow as tf
 
-from model.encoder3d import Encoder3D
-from model.decoder3d import Decoder3D
+from encoder3d import Encoder3D
+from decoder3d import Decoder3D
 
 class Unet3D(tf.keras.Model):
     def __init__(self,name:str,number_of_class:int = 3, *args, **kwargs):
