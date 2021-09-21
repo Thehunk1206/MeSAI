@@ -33,7 +33,6 @@ class Sampling(tf.keras.layers.Layer):
     def call(self, z_mean: tf.Tensor, z_log_var: tf.Tensor, **kwargs)->tf.Tensor:
         assert len(z_mean.shape) == len(z_log_var.shape) == 2,  f'Shape of z_mean should be (batch,dim), given shape for z_mean: {z_mean.shape}' \
                                                                 f'and for z_log_var: {z_log_var.shape}'
-        assert z_mean.shape == z_log_var.shape, f'shapes are incomaptible, shape of z_mean: {z_mean.shape}, shape of z_log_var: {z_log_var.shape} '
 
         batch = tf.shape(z_mean)[0]
         dims  = tf.shape(z_mean)[1]

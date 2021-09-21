@@ -162,7 +162,7 @@ class VAE_decoder(tf.keras.Model):
         return z_mean_out, z_var_out, x_vae_out
     
     def summary(self):
-        x = tf.keras.Input(shape=(self.feat_h, self.feat_w, self.feat_d, self.feat_c))
+        x = tf.keras.Input(shape=(1,self.feat_h, self.feat_w, self.feat_d, self.feat_c))
         model = tf.keras.Model(inputs=[x], outputs=self.call(x, training=True))
         return model.summary()
 
