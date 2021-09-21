@@ -170,8 +170,7 @@ class VAE_decoder(tf.keras.Model):
         return super(VAE_decoder, self).compile(optimizer=optimizer, loss=loss,  loss_weights=loss_weights, **kwargs)
         
 
-    def summary(self):
-        input_shape = self.input_shape
+    def summary(self, input_shape:tuple):
         x = tf.keras.Input(shape=input_shape)
         model = tf.keras.Model(inputs=[x], outputs=self.call(x), name='3D_VAE_Decoder')
         return model.summary()
@@ -191,7 +190,7 @@ class VAE_decoder(tf.keras.Model):
 if __name__ == "__main__":
 
     x = tf.ones(shape=(1, 20, 24, 16, 256))
-    _, h, w, d, _  = x.shape.as_list()
+    _, h, w, d, c  = x.shape.as_list()
 
     vae = VAE_decoder(name='enc_1', feat_h=h//2, feat_w=w//2, feat_d=d//2)
     # first call to the `vae` will create weights
@@ -201,5 +200,5 @@ if __name__ == "__main__":
     tf.print("trainable weights:", len(vae.trainable_weights))
     tf.print("config:", vae.get_config())
     tf.print(f"Y: {y[-1].shape}")
-    tf.print(vae.summary())
+    tf.print(vae.summary(input_shape=(h,w,d,c)))
     
