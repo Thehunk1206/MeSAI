@@ -57,12 +57,12 @@ class VAE_decoder(tf.keras.layers.Layer):
 
         self.sampling = Sampling(name='sampling_1')
 
-        self.dense2 = tf.keras.layers.Dense(units=(self.feat_h * self.feat_w * self.feat_d * (self.feat_c//32)))
+        self.dense2 = tf.keras.layers.Dense(units=((self.feat_h//2) * (self.feat_w//2) * (self.feat_d//2) * (self.feat_c//16)))
         self.relu2 = tf.keras.layers.ReLU()
-        self.reshape = tf.keras.layers.Reshape(target_shape=(self.feat_h, self.feat_w, self.feat_d, (self.feat_c//32)))
+        self.reshape = tf.keras.layers.Reshape(target_shape=((self.feat_h//2), (self.feat_w//2), (self.feat_d//2), (self.feat_c//16)))
 
         self.conv2 = tf.keras.layers.Conv3D(
-            filters=256,
+            filters=128,
             kernel_size=(1,1,1),
             strides=(1,1,1),
             padding='same',
@@ -119,7 +119,7 @@ class VAE_decoder(tf.keras.layers.Layer):
         '''
         inputs =  output from encoder3d's last layer 
         '''
-        # GroupNorm + conv(256)
+        # GroupNorm + conv(16)
         x           = self.group_norm(inputs)
         x           = self.relu1(x)
         x           = self.conv1(x)
