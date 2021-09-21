@@ -34,7 +34,7 @@ class Encoder3D(tf.keras.layers.Layer):
         self._L2_reg_f = 1e-5
         self.conv_1 = tf.keras.layers.Conv3D(
             filters=32,
-            kernel_size= (3,3,3),
+            kernel_size=(3,3,3),
             strides=(1,1,1),
             padding='same',
             kernel_regularizer=tf.keras.regularizers.L2(self._L2_reg_f)
@@ -46,7 +46,7 @@ class Encoder3D(tf.keras.layers.Layer):
 
         self.conv_2_down = tf.keras.layers.Conv3D(
             filters=32,
-            kernel_size=32,
+            kernel_size=(3,3,3),
             strides=(2,2,2),
             padding='same',
             kernel_regularizer=tf.keras.regularizers.L2(self._L2_reg_f)
@@ -58,7 +58,7 @@ class Encoder3D(tf.keras.layers.Layer):
 
         self.conv_3_down = tf.keras.layers.Conv3D(
             filters=64,
-            kernel_size=32,
+            kernel_size=(3,3,3),
             strides=(2,2,2),
             padding='same',
             kernel_regularizer=tf.keras.regularizers.L2(self._L2_reg_f)
@@ -69,7 +69,7 @@ class Encoder3D(tf.keras.layers.Layer):
 
         self.conv_4_down = tf.keras.layers.Conv3D(
             filters=128,
-            kernel_size=32,
+            kernel_size=(3,3,3),
             strides=(2,2,2),
             padding='same',
             kernel_regularizer=tf.keras.regularizers.L2(self._L2_reg_f)
