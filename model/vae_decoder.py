@@ -167,13 +167,12 @@ class VAE_decoder(tf.keras.Model):
         return model.summary()
 
     def get_config(self):
-        config = super().get_config()
-        config.update({
+        config = {
             'feat_h': self.feat_h,
             'feat_w': self.feat_w,
             'feat_d': self.feat_d,
             'feat_c': self.feat_c
-        })
+        }
         return config
     
     @classmethod
