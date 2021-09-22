@@ -74,7 +74,7 @@ class Decoder3D(tf.keras.layers.Layer):
         )
 
         self.conv_5 = tf.keras.layers.Conv3D(
-            filters=number_of_class,
+            filters=self.number_of_class,
             kernel_size=(1,1,1),
             strides=(1,1,1)
         )

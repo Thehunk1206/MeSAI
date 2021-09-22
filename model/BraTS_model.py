@@ -47,7 +47,7 @@ class BraTSeg(tf.keras.Model):
         self.IMG_W       = IMG_W
         self.IMG_D       = IMG_D
         self.IMG_C       = IMG_C
-        self.out_channel = out_channel,
+        self.out_channel = out_channel
 
         self.unet3D      = Unet3D(name='Unet3D', number_of_class=self.out_channel)
         self.vae_decoder = VAE_decoder(
