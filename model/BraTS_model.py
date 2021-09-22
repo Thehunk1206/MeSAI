@@ -57,7 +57,7 @@ class BraTSeg(tf.keras.Model):
                                         feat_d=self.IMG_D//16
                                     )
 
-    def call(self, inputs: tf.Tensor, training: bool = True):
+    def call(self, inputs: tf.Tensor, training: bool = None):
         pred_seg_vol, x_256             = self.unet3D(inputs, training = training)
         z_mean,z_var,reconstructed_vol  = self.vae_decoder(x_256, training = training)
         
