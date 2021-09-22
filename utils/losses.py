@@ -28,8 +28,42 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 '''
 
-from dataset import TfdataPipeline
 import tensorflow as tf
+
+
+class WBCEDICELoss(tf.keras.losses.Loss):
+    def __init__(self, name: str,):
+        super(WBCEDICELoss, self).__init__(name=name)
+
+    @tf.function
+    def call(self, y_mask: tf.Tensor, y_pred: tf.Tensor):
+        bce_dice_weights = 1 + 3 * \
+            tf.abs(tf.nn.avg_pool3d(y_mask, ksize=15,
+                    strides=1, padding="SAME")-y_mask)
+
+        # weighted BCE loss
+        bce_loss = tf.keras.losses.BinaryCrossentropy()(y_mask, y_pred)
+        wbce_loss = tf.reduce_sum(
+            bce_loss*bce_dice_weights, axis=(1, 2, 3)) / tf.reduce_sum(bce_dice_weights, axis=(1, 2, 3))
+
+        # weighted DICE loss
+        y_pred = tf.cast(tf.math.greater(y_pred, 0.5), tf.float32)
+
+        inter = tf.reduce_sum((y_pred * y_mask) * bce_dice_weights, axis=(1, 2, 3))
+        union = tf.reduce_sum((y_pred + y_mask) * bce_dice_weights, axis=(1, 2, 3))
+        wdice_loss = 1 - ((2*inter) / union+1e-15)
+
+        weighted_bce_dice_loss = tf.reduce_mean(
+            wbce_loss + wdice_loss)
+        return weighted_bce_dice_loss
+
+    def get_config(self):
+        return super().get_config()
+
+    @classmethod
+    def from_config(cls, config):
+        return super().from_config(config)
+
 
 
 class SoftDiceLoss(tf.keras.losses.Loss):
@@ -91,11 +125,14 @@ if __name__ == "__main__":
     y_pred = tf.abs(tf.random.normal([1,160,192,128,3]))
     y_mask = tf.abs(tf.random.normal([1,160,192,128,3]))
 
-    soft_dice_loss = SoftDiceLoss(name='sotf_dice_loss') 
+    soft_dice_loss  = SoftDiceLoss(name='sotf_dice_loss') 
+    w_bce_dice_loss = WBCEDICELoss(name='w_bce_dice_loss')
 
-    total_soft_dice_loss =  soft_dice_loss(y_mask,y_pred)
+    total_soft_dice_loss    =  soft_dice_loss(y_mask,y_pred)
+    total_w_bce_dice_loss   =  w_bce_dice_loss(y_mask,y_pred)
 
     tf.print(
-        f"soft_dice_loss: {total_soft_dice_loss}\n",
+        f"soft_dice_loss : {total_soft_dice_loss}\n",
+        f"w_bce_dice_loss: {total_w_bce_dice_loss}\n",
         )
     # tf.print(y_mask.shape)

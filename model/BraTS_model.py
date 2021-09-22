@@ -84,6 +84,9 @@ class BraTSeg(tf.keras.Model):
             loss=self.vae_loss
         )
     
+    def train_step(self, data):
+        pass
+    
     def summary(self):
         x = tf.keras.Input(shape=(self.IMG_H,self.IMG_W, self.IMG_D, self.IMG_C))
         model = tf.keras.Model(inputs=[x], outputs=self.call(x), name='BraTSeg_Model')
