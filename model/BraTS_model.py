@@ -100,8 +100,8 @@ class BraTSeg(tf.keras.Model):
         return config
     
     @classmethod
-    def from_config(cls, config,):
-        return super().from_config(config)
+    def from_config(cls, config):
+        return cls(config)
     
 if __name__ == "__main__":
 
