@@ -37,24 +37,23 @@ class WBCEDICELoss(tf.keras.losses.Loss):
 
     @tf.function
     def call(self, y_mask: tf.Tensor, y_pred: tf.Tensor):
-        bce_dice_weights = 1 + 3 * \
-            tf.abs(tf.nn.avg_pool3d(y_mask, ksize=15,
-                    strides=1, padding="SAME")-y_mask)
+        assert len(y_mask.shape) == 5, f"y_mask should be of rank 5 but got {len(y_mask.shape)} with shape as {y_mask.shape}"
+        assert len(y_pred.shape) == 5, f"y_pred should be of rank 5 but got {len(y_pred.shape)} with shape as {y_pred.shape}"
+
+        bce_dice_weights = 1 + 5 * tf.abs(tf.nn.avg_pool3d(y_mask, ksize=21, strides=1, padding="SAME")-y_mask)
 
         # weighted BCE loss
         bce_loss = tf.keras.losses.BinaryCrossentropy()(y_mask, y_pred)
-        wbce_loss = tf.reduce_sum(
-            bce_loss*bce_dice_weights, axis=(1, 2, 3)) / tf.reduce_sum(bce_dice_weights, axis=(1, 2, 3))
+        wbce_loss = tf.reduce_sum(bce_loss*bce_dice_weights, axis=(1, 2, 3)) / tf.reduce_sum(bce_dice_weights, axis=(1, 2, 3))
 
         # weighted DICE loss
-        y_pred = tf.cast(tf.math.greater(y_pred, 0.5), tf.float32)
+        y_pred = tf.cast(tf.math.greater(y_pred, 0.5), tf.float32) #thresholding
 
         inter = tf.reduce_sum((y_pred * y_mask) * bce_dice_weights, axis=(1, 2, 3))
         union = tf.reduce_sum((y_pred + y_mask) * bce_dice_weights, axis=(1, 2, 3))
         wdice_loss = 1 - ((2*inter) / union+1e-15)
 
-        weighted_bce_dice_loss = tf.reduce_mean(
-            wbce_loss + wdice_loss)
+        weighted_bce_dice_loss = tf.reduce_mean(wbce_loss + wdice_loss)
         return weighted_bce_dice_loss
 
     def get_config(self):
@@ -122,8 +121,8 @@ class VAE_loss(tf.keras.losses.Loss):
 
 if __name__ == "__main__":
 
-    y_pred = tf.abs(tf.random.normal([1,160,192,128,3]))
-    y_mask = tf.abs(tf.random.normal([1,160,192,128,3]))
+    y_pred = tf.abs(tf.zeros([1,160,192,128,3]))
+    y_mask = tf.abs(tf.ones([1,160,192,128,3]))
 
     soft_dice_loss  = SoftDiceLoss(name='sotf_dice_loss') 
     w_bce_dice_loss = WBCEDICELoss(name='w_bce_dice_loss')
