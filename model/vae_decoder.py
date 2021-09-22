@@ -61,7 +61,7 @@ class VAE_decoder(tf.keras.Model):
         self.reshape = tf.keras.layers.Reshape(target_shape=((self.feat_h), (self.feat_w), (self.feat_d), 1))
 
         self.conv2 = tf.keras.layers.Conv3D(
-            filters=128,
+            filters=256,
             kernel_size=(1,1,1),
             strides=(1,1,1),
             padding='same',
@@ -100,7 +100,7 @@ class VAE_decoder(tf.keras.Model):
         self.conv_module_3 = Conv3d_module(filters=32)
 
         self.conv6 = tf.keras.layers.Conv3D(
-            filters=16,
+            filters=32,
             kernel_size=(3,3,3),
             strides=(1,1,1),
             padding='same',

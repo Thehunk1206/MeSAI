@@ -67,7 +67,7 @@ class Decoder3D(tf.keras.layers.Layer):
         self.conv_module_3 = Conv3d_module(filters=32)
 
         self.conv_4 = tf.keras.layers.Conv3D(
-            filters=16,
+            filters=32,
             kernel_size=(3,3,3),
             padding='same',
             kernel_regularizer=tf.keras.regularizers.L2(self._L2_reg_f)
