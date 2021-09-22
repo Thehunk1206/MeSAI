@@ -120,4 +120,4 @@ if __name__ == "__main__":
         tf.print(f"Out{i}: {y[i].shape}")
     tf.print(brat_seg.summary())
     tf.print(brat_seg.unet3D.summary())
-    tf.print(brat_seg.vae_decoder.summary(input_shape=(h//16, w//16, d//16, 256)))
+    tf.print(brat_seg.vae_decoder.summary(input_shape=(h//8, w//8, d//8, 256)))
