@@ -75,7 +75,8 @@ class Decoder3D(tf.keras.layers.Layer):
 
         self.conv_5 = tf.keras.layers.Conv3D(
             filters=number_of_class,
-            kernel_size=(1,1,1)
+            kernel_size=1,
+            strides=1
         )
     
     def call(self, inputs:tuple, **kwargs):
