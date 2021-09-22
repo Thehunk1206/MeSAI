@@ -106,6 +106,7 @@ class BraTSeg(tf.keras.Model):
 if __name__ == "__main__":
 
     x = tf.ones(shape=(1, 160, 192, 128, 3))
+    _, h, w, d, _ = x.shape.as_list()
 
     brat_seg = BraTSeg(name='BratSeg')
     # first call to the `brat_seg` will create weights
@@ -118,3 +119,5 @@ if __name__ == "__main__":
     for i in range(len(y)):
         tf.print(f"Out{i}: {y[i].shape}")
     tf.print(brat_seg.summary())
+    tf.print(brat_seg.unet3D.summary())
+    tf.print(brat_seg.vae_decoder.summary(input_shape=(h//16, w//16, d//16, 256)))
