@@ -57,7 +57,7 @@ class BraTSeg(tf.keras.Model):
                                         feat_d=self.IMG_D//16
                                     )
 
-    def call(self, inputs: tf.Tensor, training: bool = None):
+    def call(self, inputs: tf.Tensor, training: bool = True):
         pred_seg_vol, x_256             = self.unet3D(inputs, training = training)
         z_mean,z_var,reconstructed_vol  = self.vae_decoder(x_256, training = training)
         
@@ -115,6 +115,6 @@ if __name__ == "__main__":
     tf.print("trainable weights:", len(brat_seg.trainable_weights))
     tf.print("config:", brat_seg.get_config())
     
-    for i in range(y):
+    for i in range(len(y)):
         tf.print(f"Out{i}: {y[i].shape}")
     tf.print(brat_seg.summary())
