@@ -77,7 +77,8 @@ class Encoder3D(tf.keras.layers.Layer):
 
         self.conv_module_4 = Conv3d_module(filters=256)
         self.conv_module_5 = Conv3d_module(filters=256)
-        self.conv_module_out_5 = Conv3d_module(filters=256)
+        self.conv_module_6 = Conv3d_module(filters=256)
+        self.conv_module_out_7 = Conv3d_module(filters=256)
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tuple:
         assert len(inputs.shape) == 5, f'Input tensor should be of 5D dim, given dim was {len(inputs.shape)}'
@@ -97,7 +98,8 @@ class Encoder3D(tf.keras.layers.Layer):
 
         x = self.conv_module_4(x)
         x = self.conv_module_5(x)
-        x_out4 = self.conv_module_out_5(x)
+        x = self.conv_module_6(x)
+        x_out4 = self.conv_module_out_7(x)
 
         return x_out1, x_out2, x_out3, x_out4 # out1-> c,h,w,d,32  out2-> c,h,w,d,64  out3-> c,h,w,d,128  out4-> c,h,w,d,256  
 
