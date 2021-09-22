@@ -44,13 +44,13 @@ class WBCEDICELoss(tf.keras.losses.Loss):
 
         # weighted BCE loss
         bce_loss = tf.keras.losses.BinaryCrossentropy()(y_mask, y_pred)
-        wbce_loss = tf.reduce_sum(bce_loss*bce_dice_weights, axis=(1, 2, 3)) / tf.reduce_sum(bce_dice_weights, axis=(1, 2, 3))
+        wbce_loss = tf.reduce_sum(bce_loss*bce_dice_weights, axis=(1, 2, 3, 4)) / tf.reduce_sum(bce_dice_weights + 1e-8, axis=(1, 2, 3, 4))
 
         # weighted DICE loss
         y_pred = tf.cast(tf.math.greater(y_pred, 0.5), tf.float32) #thresholding
 
-        inter = tf.reduce_sum((y_pred * y_mask) * bce_dice_weights, axis=(1, 2, 3))
-        union = tf.reduce_sum((y_pred + y_mask) * bce_dice_weights, axis=(1, 2, 3))
+        inter = tf.reduce_sum((y_pred * y_mask) * bce_dice_weights, axis=(1, 2, 3, 4))
+        union = tf.reduce_sum((y_pred + y_mask) * bce_dice_weights, axis=(1, 2, 3, 4))
         wdice_loss = 1 - ((2*inter) / union+1e-15)
 
         weighted_bce_dice_loss = tf.reduce_mean(wbce_loss + wdice_loss)
@@ -74,8 +74,8 @@ class SoftDiceLoss(tf.keras.losses.Loss):
         assert len(y_mask.shape) == 5, f"y_mask should be of rank 5 but got {len(y_mask.shape)} with shape as {y_mask.shape}"
         assert len(y_pred.shape) == 5, f"y_pred should be of rank 5 but got {len(y_pred.shape)} with shape as {y_pred.shape}"
 
-        inter = tf.reduce_sum((y_pred * y_mask), axis=(1, 2, 3))
-        union = tf.reduce_sum(tf.square(y_pred) + tf.square(y_mask), axis=(1, 2, 3))
+        inter = tf.reduce_sum((y_pred * y_mask), axis=(1, 2, 3, 4))
+        union = tf.reduce_sum(tf.square(y_pred) + tf.square(y_mask), axis=(1, 2, 3, 4))
 
         soft_dice_loss = 1 - ((2*inter) / union+1e-15)
 
