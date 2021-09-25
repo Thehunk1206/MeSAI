@@ -169,7 +169,7 @@ if __name__ == "__main__":
 
     soft_dice_loss  = SoftDiceLoss(name='sotf_dice_loss') 
     w_bce_dice_loss = WBCEDICELoss(name='w_bce_dice_loss')
-    focal_tversky_loss = FocalTverskyLoss(name='FTL', gamma=3)
+    focal_tversky_loss = FocalTverskyLoss(name='FTL', gamma=1)
 
     total_soft_dice_loss    =  soft_dice_loss(y_mask,y_pred)
     total_w_bce_dice_loss   =  w_bce_dice_loss(y_mask,y_pred)
