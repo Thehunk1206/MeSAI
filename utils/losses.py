@@ -163,21 +163,29 @@ class VAE_loss(tf.keras.losses.Loss):
 
 
 if __name__ == "__main__":
-
+    tf.random.set_seed(5)
     y_pred = tf.cast(tf.greater(tf.abs(tf.random.normal([1,160,192,128,3])), 0.5), dtype=tf.float32)
     y_mask = tf.cast(tf.greater(tf.abs(tf.random.normal([1,160,192,128,3])), 0.5), dtype=tf.float32)
 
-    soft_dice_loss  = SoftDiceLoss(name='sotf_dice_loss') 
-    w_bce_dice_loss = WBCEDICELoss(name='w_bce_dice_loss')
-    focal_tversky_loss = FocalTverskyLoss(name='FTL', gamma=1)
+    # soft_dice_loss  = SoftDiceLoss(name='sotf_dice_loss') 
+    # w_bce_dice_loss = WBCEDICELoss(name='w_bce_dice_loss')
+    alphas = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
+    gammas = [1,2,3,4,5]
 
-    total_soft_dice_loss    =  soft_dice_loss(y_mask,y_pred)
-    total_w_bce_dice_loss   =  w_bce_dice_loss(y_mask,y_pred)
-    total_ftl               =  focal_tversky_loss(y_mask,y_pred)
+    for alpha in alphas:
+        for gamma in gammas:
+            ftl = FocalTverskyLoss(name='FTL', alpha=alpha, gamma=gamma)(y_mask, y_pred)
+            tf.print(f'Focal Tvesrky loss: {ftl} for alpha: {alpha} and gamma:{gamma}')
 
-    tf.print(
-        f"soft_dice_loss : {total_soft_dice_loss}\n",
-        f"w_bce_dice_loss: {total_w_bce_dice_loss}\n",
-        f"focal Tversky loss: {total_ftl}\n",
-        )
+
+
+
+    # total_soft_dice_loss    =  soft_dice_loss(y_mask,y_pred)
+    # total_w_bce_dice_loss   =  w_bce_dice_loss(y_mask,y_pred)
+
+    # tf.print(
+    #     f"soft_dice_loss : {total_soft_dice_loss}\n",
+    #     f"w_bce_dice_loss: {total_w_bce_dice_loss}\n",
+    #     f"focal Tversky loss: {total_ftl}\n",
+    #     )
     # tf.print(y_mask.shape)
