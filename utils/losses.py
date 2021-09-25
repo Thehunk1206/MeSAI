@@ -69,7 +69,6 @@ class SoftDiceLoss(tf.keras.losses.Loss):
     def __init__(self, name: str,):
         super(SoftDiceLoss, self).__init__(name=name)
 
-    @tf.function
     def call(self, y_mask: tf.Tensor, y_pred: tf.Tensor):
         assert len(y_mask.shape) == 5, f"y_mask should be of rank 5 but got {len(y_mask.shape)} with shape as {y_mask.shape}"
         assert len(y_pred.shape) == 5, f"y_pred should be of rank 5 but got {len(y_pred.shape)} with shape as {y_pred.shape}"
@@ -88,6 +87,43 @@ class SoftDiceLoss(tf.keras.losses.Loss):
     def from_config(cls, config):
         return super().from_config(config)
 
+class FocalTverskyLoss(tf.keras.losses.Loss):
+
+    def __init__(self, name:str, alpha:float = 0.7, gamma:int = 1, smooth:int = 1e-8):
+        super(FocalTverskyLoss, self).__init__(name=name)
+        self.alpha = alpha # weight for false negatives and (1-aplha will be for false positives)
+        self.gamma = gamma 
+        self.smooth = smooth # numeric stability and to avoid divide by zero error
+    
+    def call(self, y_mask:tf.Tensor, y_pred:tf.Tensor) -> tf.Tensor:
+        assert len(y_mask.shape) == 5, f"y_mask should be of rank 5 but got {len(y_mask.shape)} with shape as {y_mask.shape}"
+        assert len(y_pred.shape) == 5, f"y_pred should be of rank 5 but got {len(y_pred.shape)} with shape as {y_pred.shape}"
+
+        inter = tf.reduce_sum((y_mask * y_pred), axis=(1,2,3,4))
+
+        false_ps = tf.reduce_sum((1-y_mask) * y_pred, axis = (1,2,3,4))
+        false_ns = tf.reduce_sum(y_mask * (1-y_pred), axis = (1,2,3,4))
+
+        denom = inter +  (self.alpha * false_ns) + ((1-self.alpha) * false_ps) + self.smooth
+
+        tversky_index = (inter+ self.smooth) / denom
+
+        focal_tversky_loss = tf.pow((1-tversky_index), (1/self.gamma))
+
+        return focal_tversky_loss
+    
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            'alpha': self.alpha,
+            'gamma': self.gamma,
+            'smoothing': self.smooth
+        })
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        return super().from_config(config)
 
 
 class VAE_loss(tf.keras.losses.Loss):
@@ -112,7 +148,12 @@ class VAE_loss(tf.keras.losses.Loss):
         return vae_loss
 
     def get_config(self):
-        return super().get_config()
+        conifg = super().get_config()
+        conifg.update({
+            'weight_l2': self.weight_l2,
+            'weight_kl': self.weight_kl
+        })
+        return conifg
 
     @classmethod
     def from_config(cls, config):
@@ -121,17 +162,20 @@ class VAE_loss(tf.keras.losses.Loss):
 
 if __name__ == "__main__":
 
-    y_pred = tf.abs(tf.zeros([1,160,192,128,3]))
-    y_mask = tf.abs(tf.ones([1,160,192,128,3]))
+    y_pred = tf.greater(tf.abs(tf.random.normal([1,160,192,128,3])), 0.5)
+    y_mask = tf.greater(tf.abs(tf.random.normal([1,160,192,128,3])), 0.5)
 
     soft_dice_loss  = SoftDiceLoss(name='sotf_dice_loss') 
     w_bce_dice_loss = WBCEDICELoss(name='w_bce_dice_loss')
+    focal_tversky_loss = FocalTverskyLoss(name='FTL', gamma=3)
 
     total_soft_dice_loss    =  soft_dice_loss(y_mask,y_pred)
     total_w_bce_dice_loss   =  w_bce_dice_loss(y_mask,y_pred)
+    total_ftl               =  focal_tversky_loss(y_mask,y_pred)
 
     tf.print(
         f"soft_dice_loss : {total_soft_dice_loss}\n",
         f"w_bce_dice_loss: {total_w_bce_dice_loss}\n",
+        f"focal Tversky loss: {total_ftl}\n",
         )
     # tf.print(y_mask.shape)
