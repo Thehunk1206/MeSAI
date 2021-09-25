@@ -69,6 +69,7 @@ class SoftDiceLoss(tf.keras.losses.Loss):
     def __init__(self, name: str,):
         super(SoftDiceLoss, self).__init__(name=name)
 
+    @tf.function
     def call(self, y_mask: tf.Tensor, y_pred: tf.Tensor):
         assert len(y_mask.shape) == 5, f"y_mask should be of rank 5 but got {len(y_mask.shape)} with shape as {y_mask.shape}"
         assert len(y_pred.shape) == 5, f"y_pred should be of rank 5 but got {len(y_pred.shape)} with shape as {y_pred.shape}"
@@ -95,6 +96,7 @@ class FocalTverskyLoss(tf.keras.losses.Loss):
         self.gamma = gamma 
         self.smooth = smooth # numeric stability and to avoid divide by zero error
     
+    @tf.function
     def call(self, y_mask:tf.Tensor, y_pred:tf.Tensor) -> tf.Tensor:
         assert len(y_mask.shape) == 5, f"y_mask should be of rank 5 but got {len(y_mask.shape)} with shape as {y_mask.shape}"
         assert len(y_pred.shape) == 5, f"y_pred should be of rank 5 but got {len(y_pred.shape)} with shape as {y_pred.shape}"
