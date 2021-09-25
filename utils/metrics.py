@@ -163,7 +163,6 @@ def Recall(y_mask: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
     return R
 
 if __name__ == "__main__":
-    tf.random.set_seed(5)
     #creating random samples
     y_pred = tf.cast(tf.greater(tf.abs(tf.random.normal([1,160,192,128,3])), 0.5), dtype=tf.float32)
     y_mask = tf.cast(tf.greater(tf.abs(tf.random.normal([1,160,192,128,3])), 0.5), dtype=tf.float32)

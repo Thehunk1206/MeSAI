@@ -137,14 +137,14 @@ class VAE_loss(tf.keras.losses.Loss):
         self.weight_kl = weight_kl
 
     @tf.function
-    def call(self, y_mask: tf.Tensor,y_pred: tf.Tensor, z_mean:tf.Tensor, z_var:tf.Tensor):
-        assert len(y_mask.shape) == 5, f"y_mask should be of rank 5 but got {len(y_mask.shape)} with shape as {y_mask.shape}"
-        assert len(y_pred.shape) == 5, f"y_pred should be of rank 5 but got {len(y_pred.shape)} with shape as {y_pred.shape}"
+    def call(self, x_vol: tf.Tensor, x_reconstructed: tf.Tensor, z_mean:tf.Tensor, z_var:tf.Tensor):
+        assert len(x_vol.shape) == 5, f"x_vol should be of rank 5 but got {len(x_vol.shape)} with shape as {x_vol.shape}"
+        assert len(x_reconstructed.shape) == 5, f"x_reconstructed should be of rank 5 but got {len(x_reconstructed.shape)} with shape as {x_reconstructed.shape}"
 
-        B,H,W,D,C = y_mask.shape
+        B,H,W,D,C = x_vol.shape
         N = B*H*W*D*C
 
-        l2_loss = tf.reduce_mean(tf.square(y_mask - y_pred))
+        l2_loss = tf.reduce_mean(tf.square(x_vol - x_reconstructed))
         kl_loss = (1/N) * tf.reduce_sum(tf.math.exp(z_var) + tf.square(z_mean) -1.0 - z_var, axis=0)
 
         vae_loss = self.weight_l2 * l2_loss + self.weight_kl * kl_loss
@@ -165,7 +165,6 @@ class VAE_loss(tf.keras.losses.Loss):
 
 
 if __name__ == "__main__":
-    tf.random.set_seed(5)
     y_pred = tf.cast(tf.greater(tf.abs(tf.random.normal([1,160,192,128,3])), 0.5), dtype=tf.float32)
     y_mask = tf.cast(tf.greater(tf.abs(tf.random.normal([1,160,192,128,3])), 0.5), dtype=tf.float32)
 

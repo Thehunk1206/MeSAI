@@ -31,6 +31,8 @@ import tensorflow as tf
 from unet3D import Unet3D
 from vae_decoder import VAE_decoder
 
+from utils.metrics import dice_coef, iou_metric, Precision, Recall
+
 
 class BraTSeg(tf.keras.Model):
     def __init__(
@@ -66,27 +68,73 @@ class BraTSeg(tf.keras.Model):
     def compile(
         self, 
         optimizer:tf.keras.optimizers.Optimizer, 
-        dice_loss:tf.keras.losses.Loss,
+        seg_loss:tf.keras.losses.Loss,
         vae_loss: tf.keras.losses.Loss, 
         **kwargs
     ):  
         super(BraTSeg, self).compile(**kwargs)
         self.optimizer  = optimizer
-        self.dice_loss  = dice_loss
+        self.seg_loss   = seg_loss
         self.vae_loss   = vae_loss
 
         self.unet3D.compile(
             optimizer=self.optimizer,
-            loss=self.dice_loss
+            loss=self.seg_loss
         )
         self.vae_decoder.compile(
             optimizer=self.optimizer,
             loss=self.vae_loss
         )
     
-    def train_step(self, data):
-        pass
-    
+    @tf.function
+    def train_step(self, x_vol:tf.Tensor, y_mask:tf.Tensor):
+        '''
+        Forward pass, calculates total loss, metrics, and calculate gradients with respect to loss.
+        args    x_vol : Input 3D volume -> tf.Tensor
+                y_mask: 3D Mask map of x_vol -> tf.Tensor
+        
+        returns total_loss, train_dice, train_iou, train_precision, train_recall
+        '''
+        with tf.GradientTape() as tape:
+            pred_seg_vol, reconstructed_vol, z_mean, z_var = self(x_vol, training=True)
+            loss1 = self.seg_loss(y_mask, pred_seg_vol)
+            loss2 = self.vae_loss(x_vol, reconstructed_vol, z_mean, z_var)
+            train_loss = loss1+loss2
+        
+        gradients = tape.gradient(train_loss, self.trainable_variables)
+
+        self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
+
+        #calculate metrics
+        train_dice      = dice_coef(y_mask=y_mask, y_pred=pred_seg_vol)
+        train_iou       = iou_metric(y_mask=y_mask, y_pred=pred_seg_vol)
+        train_precision = Precision(y_mask=y_mask, y_pred=pred_seg_vol)
+        train_recall    = Recall(y_mask=y_mask, y_pred=pred_seg_vol)
+
+        return train_loss, train_dice, train_iou, train_precision, train_recall
+
+    @tf.function
+    def test_step(self, x_vol:tf.Tensor, y_mask:tf.Tensor):
+        '''
+        Forward pass, Calculates loss and metric on validation set
+        args    x_img: Input Image -> tf.Tensor
+                y_mask: Mask map of x_img -> tf.Tensor
+        
+        returns total_loss, val_dice, val_iou, val_precision, val_recall
+        '''
+        pred_seg_vol, reconstructed_vol, z_mean, z_var = self(x_vol, training=False)
+        loss1 = self.seg_loss(y_mask, pred_seg_vol)
+        loss2 = self.vae_loss(x_vol, reconstructed_vol, z_mean, z_var)
+        val_loss = loss1+loss2
+
+        #calculate metrics
+        val_dice      = dice_coef(y_mask=y_mask, y_pred=pred_seg_vol)
+        val_iou       = iou_metric(y_mask=y_mask, y_pred=pred_seg_vol)
+        val_precision = Precision(y_mask=y_mask, y_pred=pred_seg_vol)
+        val_recall    = Recall(y_mask=y_mask, y_pred=pred_seg_vol)
+
+        return val_loss, val_dice, val_iou, val_precision, val_recall
+
     def summary(self):
         x = tf.keras.Input(shape=(self.IMG_H,self.IMG_W, self.IMG_D, self.IMG_C))
         model = tf.keras.Model(inputs=[x], outputs=self.call(x), name='BraTSeg_Model')
