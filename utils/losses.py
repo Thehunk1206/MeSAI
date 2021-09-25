@@ -164,8 +164,8 @@ class VAE_loss(tf.keras.losses.Loss):
 
 if __name__ == "__main__":
 
-    y_pred = tf.greater(tf.abs(tf.random.normal([1,160,192,128,3])), 0.5)
-    y_mask = tf.greater(tf.abs(tf.random.normal([1,160,192,128,3])), 0.5)
+    y_pred = tf.cast(tf.greater(tf.abs(tf.random.normal([1,160,192,128,3])), 0.5), dtype=tf.float32)
+    y_mask = tf.cast(tf.greater(tf.abs(tf.random.normal([1,160,192,128,3])), 0.5), dtype=tf.float32)
 
     soft_dice_loss  = SoftDiceLoss(name='sotf_dice_loss') 
     w_bce_dice_loss = WBCEDICELoss(name='w_bce_dice_loss')
