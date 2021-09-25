@@ -1,8 +1,10 @@
 '''
 The following script contains loss fucntions for multiclass - 3D segmentation
 1)Wieghted BCE and Dice loss
-2) VAE(variational autoencoder loss)
-3)KL divergence loss
+2)Soft Dice Loss
+3)Focal Tversky Loss
+4)VAE(variational autoencoder loss)
+
 =================================LICENSE====================================
 
 MIT License
@@ -44,13 +46,13 @@ class WBCEDICELoss(tf.keras.losses.Loss):
 
         # weighted BCE loss
         bce_loss = tf.keras.losses.BinaryCrossentropy()(y_mask, y_pred)
-        wbce_loss = tf.reduce_sum(bce_loss*bce_dice_weights, axis=(1, 2, 3, 4)) / tf.reduce_sum(bce_dice_weights + 1e-8, axis=(1, 2, 3, 4))
+        wbce_loss = tf.reduce_sum(bce_loss*bce_dice_weights, axis=(1, 2, 3)) / tf.reduce_sum(bce_dice_weights + 1e-8, axis=(1, 2, 3))
 
         # weighted DICE loss
         y_pred = tf.cast(tf.math.greater(y_pred, 0.5), tf.float32) #thresholding
 
-        inter = tf.reduce_sum((y_pred * y_mask) * bce_dice_weights, axis=(1, 2, 3, 4))
-        union = tf.reduce_sum((y_pred + y_mask) * bce_dice_weights, axis=(1, 2, 3, 4))
+        inter = tf.reduce_sum((y_pred * y_mask) * bce_dice_weights, axis=(1, 2, 3))
+        union = tf.reduce_sum((y_pred + y_mask) * bce_dice_weights, axis=(1, 2, 3))
         wdice_loss = 1 - ((2*inter) / union+1e-15)
 
         weighted_bce_dice_loss = tf.reduce_mean(wbce_loss + wdice_loss)
@@ -90,7 +92,7 @@ class SoftDiceLoss(tf.keras.losses.Loss):
 
 class FocalTverskyLoss(tf.keras.losses.Loss):
 
-    def __init__(self, name:str, alpha:float = 0.7, gamma:int = 1, smooth:int = 1e-8):
+    def __init__(self, name:str, alpha:float = 0.7, gamma:int = 3, smooth:int = 1e-8):
         super(FocalTverskyLoss, self).__init__(name=name)
         self.alpha = alpha # weight for false negatives and (1-aplha will be for false positives)
         self.gamma = gamma 
@@ -101,14 +103,14 @@ class FocalTverskyLoss(tf.keras.losses.Loss):
         assert len(y_mask.shape) == 5, f"y_mask should be of rank 5 but got {len(y_mask.shape)} with shape as {y_mask.shape}"
         assert len(y_pred.shape) == 5, f"y_pred should be of rank 5 but got {len(y_pred.shape)} with shape as {y_pred.shape}"
 
-        inter = tf.reduce_sum((y_mask * y_pred), axis=(1,2,3,4))
+        inter = tf.reduce_sum((y_mask * y_pred), axis=(1,2,3))
 
-        false_ps = tf.reduce_sum((1-y_mask) * y_pred, axis = (1,2,3,4))
-        false_ns = tf.reduce_sum(y_mask * (1-y_pred), axis = (1,2,3,4))
+        false_ps = tf.reduce_sum((1-y_mask) * y_pred, axis = (1,2,3))
+        false_ns = tf.reduce_sum(y_mask * (1-y_pred), axis = (1,2,3))
 
         denom = inter +  (self.alpha * false_ns) + ((1-self.alpha) * false_ps) + self.smooth
 
-        tversky_index = (inter+ self.smooth) / denom
+        tversky_index = tf.reduce_mean((inter+ self.smooth) / denom)
 
         focal_tversky_loss = tf.pow((1-tversky_index), (1/self.gamma))
 
