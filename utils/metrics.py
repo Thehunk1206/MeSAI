@@ -180,6 +180,6 @@ if __name__ == "__main__":
         f'Dice coef for Multi class : {multi_dice}\n',
         f'IoU                       : {iou}\n',
         f'IoU score for Multiclass  : {iou_multi}\n',
-        f'Precision                 : {precision}',
-        f'Recall                    : {recall}'
+        f'Precision                 : {precision}\n',
+        f'Recall                    : {recall}\n'
     )
