@@ -39,3 +39,18 @@ from model.BraTS_model import BraTSeg
 import tensorflow as tf
 tf.random.set_seed(4)
 
+
+def train(
+    dataset_dir: str,
+    trained_model_dir: str,
+    IMG_H: int           = 160,
+    IMG_W: int           = 192,
+    IMG_D: int           = 128,
+    batch_size: int      = 1,
+    lr: float            = 1e-4,
+    dataset_split: float = 0.1,
+    logdir: str          = 'logs/',
+    loss_function:str    = 'softdice',
+    
+):
+    pass

@@ -152,6 +152,7 @@ def Recall(y_mask: tf.Tensor, y_pred: tf.Tensor) -> tf.Tensor:
     assert len(y_mask.shape) == 5, f"y_mask should be of rank 5 but got {len(y_mask.shape)} with shape as {y_mask.shape}"
     assert len(y_pred.shape) == 5, f"y_pred should be of rank 5 but got {len(y_pred.shape)} with shape as {y_pred.shape}"
 
+    # Threshold in order to get a binary segmented map for each class
     y_pred = tf.cast(tf.greater(y_pred, 0.5), dtype=tf.float32)
     y_mask = tf.cast(tf.greater(y_mask, 0.5), dtype=tf.float32)
 
