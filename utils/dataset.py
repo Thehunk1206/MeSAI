@@ -154,18 +154,14 @@ class TfdataPipeline:
     def _read_seg_volumes(self, path:tf.Tensor) -> tf.Tensor:
 
         seg_vol = self._read_volumes(path=path)
-        seg_vol = seg_vol.numpy()
-
-        seg_label_1 = seg_vol==1
-        seg_label_2 = seg_vol==2
-        seg_label_3 = seg_vol==4
         
-        final_seg_vol          = tf.zeros([seg_vol.shape[0], seg_vol.shape[1], seg_vol.shape[2], 3], dtype=tf.float32)
-        final_seg_vol          = final_seg_vol.numpy()
-        final_seg_vol[:,:,:,0] = seg_label_1
-        final_seg_vol[:,:,:,1] = seg_label_2
-        final_seg_vol[:,:,:,2] = seg_label_3
-        
+        # convert to multi-channel label 
+        channel_label = []
+        unique_label, _ = tf.unique(tf.reshape(seg_vol, [-1]))
+        for label in unique_label:
+            label = seg_vol == label.numpy()
+            channel_label.append(label)
+        final_seg_vol = tf.stack(channel_label, axis=-1)
         final_seg_vol = tf.cast(final_seg_vol, dtype=tf.float32)
         
         cropped_seg_vol = self._crop_volume(final_seg_vol)
