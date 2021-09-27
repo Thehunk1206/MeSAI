@@ -130,7 +130,7 @@ def train(
     tf.print(f'[INFO] Summary of all model\n')
     tf.print(bratseg.summary())
     tf.print(bratseg.unet3D.summary())
-    tf.print(bratseg.vae_decoder.summary(input_shape=(IMG_H/8, IMG_W/8, IMG_D/8, 256)))
+    tf.print(bratseg.vae_decoder.summary(input_shape=(IMG_H//8, IMG_W//8, IMG_D//8, 256)))
 
     tf.print('\n')
     tf.print('*'*60)
