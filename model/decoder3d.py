@@ -24,7 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 '''
 import tensorflow as tf
-from conv3d_module import Conv3d_module
+from model.conv3d_module import Conv3d_module
 
 class Decoder3D(tf.keras.layers.Layer):
     def __init__(self, name:str, number_of_class:int, **kwargs):

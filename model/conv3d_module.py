@@ -24,7 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 '''
 import tensorflow as tf
-from group_norm import GroupNormalization
+from model.group_norm import GroupNormalization
 
 class Conv3d_module(tf.keras.layers.Layer):
     def __init__(self, 
