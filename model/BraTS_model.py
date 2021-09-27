@@ -124,8 +124,8 @@ class BraTSeg(tf.keras.Model):
         returns total_loss, val_dice, val_iou, val_precision, val_recall
         '''
         pred_seg_vol, reconstructed_vol, z_mean, z_var = self(x_vol, training=False)
-        loss1 = self.seg_loss(y_mask, pred_seg_vol)
-        loss2 = self.vae_loss(x_vol, reconstructed_vol, z_mean, z_var)
+        loss1 = self.vae_loss(x_vol, reconstructed_vol, z_mean, z_var)
+        loss2 = self.seg_loss(y_mask, pred_seg_vol)
         val_loss = loss1+loss2
 
         #calculate metrics

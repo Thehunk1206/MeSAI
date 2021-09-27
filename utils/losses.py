@@ -137,7 +137,7 @@ class VAE_loss(tf.keras.losses.Loss):
         self.weight_kl = weight_kl
 
     @tf.function
-    def call(self, x_vol: tf.Tensor, x_reconstructed: tf.Tensor, z_mean:tf.Tensor, z_var:tf.Tensor):
+    def call(self, x_vol: tf.Tensor, x_reconstructed: tf.Tensor, z_mean: tf.Tensor, z_var :tf.Tensor):
         assert len(x_vol.shape) == 5, f"x_vol should be of rank 5 but got {len(x_vol.shape)} with shape as {x_vol.shape}"
         assert len(x_reconstructed.shape) == 5, f"x_reconstructed should be of rank 5 but got {len(x_reconstructed.shape)} with shape as {x_reconstructed.shape}"
 
@@ -167,17 +167,23 @@ class VAE_loss(tf.keras.losses.Loss):
 if __name__ == "__main__":
     y_pred = tf.cast(tf.greater(tf.abs(tf.random.normal([1,160,192,128,3])), 0.5), dtype=tf.float32)
     y_mask = tf.cast(tf.greater(tf.abs(tf.random.normal([1,160,192,128,3])), 0.5), dtype=tf.float32)
+    z_mean = tf.random.normal([1,128])
+    z_var = tf.random.normal([1,128])
+
 
     soft_dice_loss  = SoftDiceLoss(name='sotf_dice_loss') 
     w_bce_dice_loss = WBCEDICELoss(name='w_bce_dice_loss')
     focal_tversky_loss = FocalTverskyLoss(name='FTL', gamma=1)
+    vae_loss = VAE_loss(name='vae_loss')
 
     total_soft_dice_loss    =  soft_dice_loss(y_mask,y_pred)
     total_w_bce_dice_loss   =  w_bce_dice_loss(y_mask,y_pred)
     total_ftl               =  focal_tversky_loss(y_mask,y_pred)
+    total_vae_loss          =  vae_loss(y_mask, y_pred, z_mean, z_var)
 
     tf.print(
-        f"soft_dice_loss : {total_soft_dice_loss}\n",
-        f"w_bce_dice_loss: {total_w_bce_dice_loss}\n",
+        f"soft_dice_loss    : {total_soft_dice_loss}\n",
+        f"w_bce_dice_loss   : {total_w_bce_dice_loss}\n",
         f"focal Tversky loss: {total_ftl}\n",
+        f"vae loss          : {total_vae_loss}\n",
         )

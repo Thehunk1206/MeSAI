@@ -134,12 +134,12 @@ def train(
 
     tf.print('\n')
     tf.print('*'*60)
-    tf.print('\t\t\tModel Configs\n')
+    tf.print('\t\t\tModel Configs')
     tf.print('*'*60)
     tf.print(
         f'\n',
         f'Training and validating Model : {bratseg.name} \n',
-        f'Epochs                        : {epochs} \n'
+        f'Epochs                        : {epochs} \n',
         f'learing_rate                  : {lr} \n',
         f'Input shape                   : ({IMG_H},{IMG_W},{IMG_D},{IMG_C}) \n',
         f'Batch size                    : {batch_size} \n',
