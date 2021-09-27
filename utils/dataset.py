@@ -159,8 +159,9 @@ class TfdataPipeline:
         channel_label = []
         unique_label, _ = tf.unique(tf.reshape(seg_vol, [-1]))
         for label in unique_label:
-            label = seg_vol == label.numpy()
-            channel_label.append(label)
+            if label.numpy() != 0:
+                label = seg_vol == label.numpy()
+                channel_label.append(label)
         final_seg_vol = tf.stack(channel_label, axis=-1)
         final_seg_vol = tf.cast(final_seg_vol, dtype=tf.float32)
         
