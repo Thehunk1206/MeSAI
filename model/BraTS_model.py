@@ -28,8 +28,8 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import tensorflow as tf
-from unet3D import Unet3D
-from vae_decoder import VAE_decoder
+from model.unet3D import Unet3D
+from model.vae_decoder import VAE_decoder
 
 from utils.metrics import dice_coef, iou_metric, Precision, Recall
 
