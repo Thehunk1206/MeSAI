@@ -77,7 +77,6 @@ class Encoder3D(tf.keras.layers.Layer):
 
         self.conv_module_4 = Conv3d_module(filters=256)
         self.conv_module_5 = Conv3d_module(filters=256)
-        self.conv_module_6 = Conv3d_module(filters=256)
         self.conv_module_out_7 = Conv3d_module(filters=256)
 
     def call(self, inputs: tf.Tensor, **kwargs) -> tuple:
