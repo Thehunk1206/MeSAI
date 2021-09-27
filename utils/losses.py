@@ -137,7 +137,7 @@ class VAE_loss(tf.keras.losses.Loss):
         self.weight_kl = weight_kl
 
     @tf.function
-    def call(self, x_vol: tf.Tensor, x_reconstructed: tf.Tensor, z_mean: tf.Tensor, z_var :tf.Tensor):
+    def __call__(self, x_vol: tf.Tensor, x_reconstructed: tf.Tensor, z_mean: tf.Tensor, z_var :tf.Tensor):
         assert len(x_vol.shape) == 5, f"x_vol should be of rank 5 but got {len(x_vol.shape)} with shape as {x_vol.shape}"
         assert len(x_reconstructed.shape) == 5, f"x_reconstructed should be of rank 5 but got {len(x_reconstructed.shape)} with shape as {x_reconstructed.shape}"
 
