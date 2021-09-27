@@ -56,7 +56,7 @@ class BraTSeg(tf.keras.Model):
         self.vae_decoder = VAE_decoder(
                                         name='vae_decoder',
                                         feat_h=self.IMG_H//16, 
-                                        feat_w= self.IMG_H//16, 
+                                        feat_w= self.IMG_W//16, 
                                         feat_d=self.IMG_D//16
                                     )
 
