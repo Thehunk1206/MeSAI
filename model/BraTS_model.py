@@ -37,6 +37,7 @@ from utils.metrics import dice_coef, iou_metric, Precision, Recall
 class BraTSeg(tf.keras.Model):
     def __init__(
         self, 
+        name:  str,
         IMG_H: int = 160,
         IMG_W: int = 192,
         IMG_D: int = 128,
@@ -44,7 +45,7 @@ class BraTSeg(tf.keras.Model):
         out_channel: int = 3,
          **kwargs
     ):
-        super(BraTSeg, self).__init__(**kwargs)
+        super(BraTSeg, self).__init__(name=name,**kwargs)
         self.IMG_H       = IMG_H
         self.IMG_W       = IMG_W
         self.IMG_D       = IMG_D

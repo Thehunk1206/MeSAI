@@ -92,7 +92,7 @@ class SoftDiceLoss(tf.keras.losses.Loss):
 
 class FocalTverskyLoss(tf.keras.losses.Loss):
 
-    def __init__(self, name:str, alpha:float = 0.7, gamma:int = 3, smooth:int = 1e-8):
+    def __init__(self, name:str, alpha:float = 0.7, gamma:int = 3, smooth:float = 1e-8):
         super(FocalTverskyLoss, self).__init__(name=name)
         self.alpha = alpha # weight for false negatives and (1-aplha will be for false positives)
         self.gamma = gamma 
@@ -181,4 +181,3 @@ if __name__ == "__main__":
         f"w_bce_dice_loss: {total_w_bce_dice_loss}\n",
         f"focal Tversky loss: {total_ftl}\n",
         )
-    # tf.print(y_mask.shape)
