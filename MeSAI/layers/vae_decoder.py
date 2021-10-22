@@ -25,9 +25,9 @@ SOFTWARE.
 '''
 
 import tensorflow as tf
-from model.sampling import Sampling
-from model.group_norm import GroupNormalization
-from model.conv3d_module import Conv3d_module
+from MeSAI.layers.sampling import Sampling
+from MeSAI.layers.group_norm import GroupNormalization
+from MeSAI.layers.conv3d_module import Conv3d_module
 
 class VAE_decoder(tf.keras.Model):
     def __init__(self, name:str, feat_h:int, feat_w:int, feat_d:int, **kwargs):

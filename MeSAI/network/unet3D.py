@@ -26,8 +26,8 @@ SOFTWARE.
 
 import tensorflow as tf
 
-from model.encoder3d import Encoder3D
-from model.decoder3d import Decoder3D
+from MeSAI.layers.encoder3d import Encoder3D
+from MeSAI.layers.decoder3d import Decoder3D
 
 class Unet3D(tf.keras.Model):
     def __init__(self,name:str,number_of_class:int = 3, *args, **kwargs):
@@ -37,6 +37,7 @@ class Unet3D(tf.keras.Model):
 
         self.encoder = Encoder3D(name='encoder3d')
         self.decoder = Decoder3D(name='decoder3d', number_of_class=self.number_of_class)
+
 
     def call(self, inputs:tf.Tensor, training:bool=None)->tf.Tensor:
         x_32, x_64, x_128, x_256    = self.encoder(inputs)

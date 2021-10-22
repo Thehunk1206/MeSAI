@@ -25,7 +25,7 @@ SOFTWARE.
 '''
 
 import tensorflow as tf
-from model.conv3d_module import Conv3d_module
+from MeSAI.layers.conv3d_module import Conv3d_module
 
 class Encoder3D(tf.keras.layers.Layer):
     def __init__(self, name:str, **kwargs):
