@@ -32,16 +32,30 @@ class Conv3d_module(tf.keras.layers.Layer):
                 kernel_size: tuple = (3,3,3),
                 stride:tuple = (1,1,1),
                 padding: str = 'same',
+                bn: bool = False,
                 **kwargs
-    ):
-        super(Conv3d_module, self).__init__(**kwargs)
-        assert len(kernel_size) == 3
-        assert len(stride) == 3
-        self.filters = filters
-        self.kernel_size = kernel_size
-        self.stride = stride
-        self.padding = padding
+    ):  
+        '''
+        Conv3d_module creates a 3D-conv block with an identity connection.
 
+        Architecture:- [Inputs]=>[Conv3D]=>[batch_norm/group_norm]=>[LeakyRelu(0.2)]=>[Conv3D]=>[batch/group_norm]=>[LeakyRelu(0.2)]=>[Conv3D]=>+[Inputs]=>output
+
+        args:-
+            filters: int, Number of output filters
+            kernel_size: tuple[int] = (3,3,3), Size of kernel matrix
+            stride: tuple[int] = (1,1,1), size of strides
+            padding; str = 'same' 
+            bn: bool = False, To use batch norm or group norm. if true, it will use batch norm else it will use group norm.
+        '''
+        super(Conv3d_module, self).__init__(**kwargs)
+        assert len(kernel_size) == 3, f'Kernel dimension should be 3, given dims:{len(kernel_size)}'
+        assert len(stride) == 3, f'Stride dimension should be 3, given dims: {len(len(stride))}'
+        self.filters     = filters
+        self.kernel_size = kernel_size
+        self.stride      = stride
+        self.padding     = padding
+        self.bn          = bn
+        
         self.conv3d_1 = tf.keras.layers.Conv3D(
             filters=self.filters,
             kernel_size=(1,1,1),
@@ -50,9 +64,12 @@ class Conv3d_module(tf.keras.layers.Layer):
             kernel_regularizer=tf.keras.regularizers.L2(l2=1e-5)
         )
 
-        self.group_norm_1 = GroupNormalization(groups=8, axis=-1)
-
-        self.relu1 = tf.keras.layers.ReLU()
+        if self.bn:
+            self.norm_1 = tf.keras.layers.BatchNormalization()
+            self.norm_2 = tf.keras.layers.BatchNormalization()
+        else:
+            self.norm_1 = GroupNormalization(groups=8, axis=-1)
+            self.norm_2 = GroupNormalization(groups=8, axis=-1)
 
         self.conv3d_2 = tf.keras.layers.Conv3D(
             filters=self.filters,
@@ -61,10 +78,6 @@ class Conv3d_module(tf.keras.layers.Layer):
             padding=self.padding,
             kernel_regularizer=tf.keras.regularizers.L2(l2=1e-5)
         )
-
-        self.group_norm_2 = GroupNormalization(groups=8, axis=-1)
-
-        self.relu2 = tf.keras.layers.ReLU()
 
         self.conv3d_3 = tf.keras.layers.Conv3D(
             filters=self.filters,
@@ -78,13 +91,13 @@ class Conv3d_module(tf.keras.layers.Layer):
 
     def call(self, inputs:tf.Tensor,training:bool = False, **kwargs) -> tf.Tensor:
         x_shortcut = self.conv3d_1(inputs) 
-        x = self.group_norm_1(x_shortcut, training = training)
-        x = self.relu1(x)
-        x = self.conv3d_2(x)
-        x = self.group_norm_2(x, training= training)
-        x = self.relu2(x)
-        x = self.conv3d_3(x)
-        output = self.add([x,x_shortcut])
+        x           = self.norm_1(x_shortcut, training = training)
+        x           = tf.nn.leaky_relu(x)
+        x           = self.conv3d_2(x)
+        x           = self.norm_2(x, training= training)
+        x           = tf.nn.leaky_relu(x)
+        x           = self.conv3d_3(x)
+        output      = self.add([x,x_shortcut])
 
         return output
     
@@ -94,7 +107,8 @@ class Conv3d_module(tf.keras.layers.Layer):
             'filters': self.filters,
             'kernel_size': self.kernel_size,
             'stride': self.stride,
-            'padding': self.padding
+            'padding': self.padding,
+            'bn': self.bn
         })
         return config
     
@@ -104,7 +118,7 @@ class Conv3d_module(tf.keras.layers.Layer):
     
 
 if __name__ == "__main__":
-    cm = Conv3d_module(32)
+    cm = Conv3d_module(32, bn=False)
     # first call to the `cm` will create weights
     y = cm(tf.ones(shape=(2, 32, 32, 32, 128)))
 

@@ -30,7 +30,18 @@ from MeSAI.layers.group_norm import GroupNormalization
 from MeSAI.layers.conv3d_module import Conv3d_module
 
 class VAE_decoder(tf.keras.Model):
-    def __init__(self, name:str, feat_h:int, feat_w:int, feat_d:int, **kwargs):
+    '''
+    Variational Autoencoder used as regulirizer used in paper 
+    '3D MRI brain tumor segmentation using autoencoder regularization'(https://arxiv.org/pdf/1810.11654v3.pdf)
+
+    args:
+        name:str
+        feat_h: int, Input feature map's Height
+        feat_w: int, Input feature map's Width
+        feat_d: int, Input feature map's Depth
+
+    '''
+    def __init__(self, name:str, feat_h:int, feat_w:int, feat_d:int, bn:bool,**kwargs):
         super(VAE_decoder, self).__init__(name=name,  **kwargs)
 
         self.feat_h = feat_h
