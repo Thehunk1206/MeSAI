@@ -24,6 +24,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 '''
 
+from __future__ import annotations
+from __future__ import absolute_import
+
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
@@ -31,7 +34,7 @@ import tensorflow as tf
 from MeSAI.network.unet3D import Unet3D
 from MeSAI.layers.vae_decoder import VAE_decoder
 
-from utils.metrics import dice_coef, iou_metric, Precision, Recall
+from MeSAI.utils.metrics import dice_coef, iou_metric, Precision, Recall
 
 
 class VAEUnet3D(tf.keras.Model):
@@ -88,7 +91,7 @@ class VAEUnet3D(tf.keras.Model):
         )
     
     @tf.function
-    def train_step(self, x_vol:tf.Tensor, y_mask:tf.Tensor):
+    def train_step(self, x_vol:tf.Tensor, y_mask:tf.Tensor) -> tuple[tf.Tensor, ...]:
         '''
         Forward pass, calculates total loss, metrics, and calculate gradients with respect to loss.
         args    x_vol : Input 3D volume -> tf.Tensor

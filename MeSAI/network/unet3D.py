@@ -23,11 +23,18 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 '''
+from __future__ import annotations
+from __future__ import absolute_import
+
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import tensorflow as tf
-
 from MeSAI.layers.encoder3d import Encoder3D
 from MeSAI.layers.decoder3d import Decoder3D
+
+
+from MeSAI.utils.metrics import dice_coef, iou_metric, Precision, Recall
 
 class Unet3D(tf.keras.Model):
     def __init__(self,name:str,number_of_class:int = 3, *args, **kwargs):
@@ -52,7 +59,59 @@ class Unet3D(tf.keras.Model):
         loss_weights=None, 
         **kwargs
     ):
-        return super(Unet3D,self).compile(optimizer=optimizer, loss=loss,  loss_weights=loss_weights, **kwargs)
+        super(Unet3D,self).compile(**kwargs)
+        self.optimizer      = optimizer
+        self.loss           = loss
+        self.loss_weights   = loss_weights
+
+    @tf.function
+    def train_step(self, x_vol:tf.Tensor, y_mask:tf.Tensor) -> tuple[tf.Tensor, ...]:
+        '''
+        Forward pass, calculates total loss, metrics, and calculate gradients with respect to loss.
+        args    x_vol : Input 3D volume -> tf.Tensor
+                y_mask: 3D Mask map of x_vol -> tf.Tensor
+        
+        returns total_loss, train_dice, train_iou, train_precision, train_recall
+        '''
+        with tf.GradientTape() as tape:
+            pred_seg_vol, _ = self(x_vol, training = True)
+            train_loss = self.loss(y_mask, pred_seg_vol)
+        
+        #Calculate gradients
+        gradients = tape.gradient(train_loss, self.trainable_variables)
+
+        # Backpropogation
+        self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
+
+        # Calculate metrics
+        train_dice      = dice_coef(y_mask=y_mask, y_pred=pred_seg_vol)
+        train_iou       = iou_metric(y_mask=y_mask, y_pred=pred_seg_vol)
+        train_precision = Precision(y_mask=y_mask, y_pred=pred_seg_vol)
+        train_recall    = Recall(y_mask=y_mask, y_pred=pred_seg_vol)
+
+        return train_loss, train_dice, train_iou, train_precision, train_recall
+
+
+    @tf.function
+    def test_step(self, x_vol:tf.Tensor, y_mask:tf.Tensor) -> tuple[tf.Tensor, ...]:
+        '''
+        Forward pass, Calculates loss and metric on validation set
+        args    x_img: Input Image -> tf.Tensor
+                y_mask: Mask map of x_img -> tf.Tensor
+        
+        returns total_loss, val_dice, val_iou, val_precision, val_recall
+        '''
+        # Forword pass
+        pred_seg_vol, _ = self(x_vol, training = False)
+        val_loss = self.loss(y_mask, pred_seg_vol)
+
+        val_dice      = dice_coef(y_mask=y_mask, y_pred=pred_seg_vol)
+        val_iou       = iou_metric(y_mask=y_mask, y_pred=pred_seg_vol)
+        val_precision = Precision(y_mask=y_mask, y_pred=pred_seg_vol)
+        val_recall    = Recall(y_mask=y_mask, y_pred=pred_seg_vol)
+
+        return val_loss, val_dice, val_iou, val_precision, val_recall
+        
 
     def summary(self):
         x = tf.keras.Input(shape=(160,192,128,3))

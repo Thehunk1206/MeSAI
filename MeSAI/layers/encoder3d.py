@@ -23,6 +23,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 '''
+from __future__ import annotations
+from __future__ import absolute_import
 
 import tensorflow as tf
 from MeSAI.layers.conv3d_module import Conv3d_module
@@ -79,7 +81,7 @@ class Encoder3D(tf.keras.layers.Layer):
         self.conv_module_5 = Conv3d_module(filters=256)
         self.conv_module_out_6 = Conv3d_module(filters=256)
 
-    def call(self, inputs: tf.Tensor, **kwargs) -> tuple:
+    def call(self, inputs: tf.Tensor, **kwargs) -> tuple[tf.Tensor, ...]:
         assert len(inputs.shape) == 5, f'Input tensor should be of 5D dim, given dim was {len(inputs.shape)}'
         x = self.conv_1(inputs)
         x = self.spatial_dropout3d(x)

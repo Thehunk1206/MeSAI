@@ -23,6 +23,10 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 '''
+
+from __future__ import annotations
+from __future__ import absolute_import
+
 import tensorflow as tf
 from MeSAI.layers.conv3d_module import Conv3d_module
 
@@ -79,7 +83,7 @@ class Decoder3D(tf.keras.layers.Layer):
             strides=(1,1,1)
         )
     
-    def call(self, inputs:tuple, **kwargs):
+    def call(self, inputs:tuple, **kwargs) -> tf.Tensor:
         '''
         input here will be a tuple from Encder. 
         This Tuple contains all low to high level 
