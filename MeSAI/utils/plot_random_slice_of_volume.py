@@ -36,7 +36,7 @@ import random
 PATH_TO_DATASET = "BraTS_2020/"
 
 if __name__ == "__main__":
-    tfdatapipeline = TfdataPipeline(BASE_DATASET_DIR=PATH_TO_DATASET)
+    tfdatapipeline = TfdataPipeline(BASE_DATASET_DIR=PATH_TO_DATASET, IMG_H=128, IMG_W=160   , IMG_D=128)
     train_data = tfdatapipeline.data_loader()
 
     data = next(train_data.as_numpy_iterator())

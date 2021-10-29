@@ -213,7 +213,7 @@ class TfdataPipeline:
 if __name__ == "__main__":
     
 
-    tfdatapipeline = TfdataPipeline(BASE_DATASET_DIR="BraTS_2020/")
+    tfdatapipeline = TfdataPipeline(BASE_DATASET_DIR="BraTS_2020/", IMG_H=128, IMG_W=172, IMG_D=128)
     train_data = tfdatapipeline.data_loader(dataset_type='test')
 
     for img_vol, seg_vol in train_data.take(2):

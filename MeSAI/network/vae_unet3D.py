@@ -24,17 +24,20 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 '''
 
+from __future__ import annotations
+from __future__ import absolute_import
+
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import tensorflow as tf
-from model.unet3D import Unet3D
-from model.vae_decoder import VAE_decoder
+from MeSAI.network.unet3D import Unet3D
+from MeSAI.layers.vae_decoder import VAE_decoder
 
-from utils.metrics import dice_coef, iou_metric, Precision, Recall
+from MeSAI.utils.metrics import dice_coef, iou_metric, Precision, Recall
 
 
-class BraTSeg(tf.keras.Model):
+class VAEUnet3D(tf.keras.Model):
     def __init__(
         self, 
         name:  str,
@@ -45,7 +48,7 @@ class BraTSeg(tf.keras.Model):
         out_channel: int = 3,
          **kwargs
     ):
-        super(BraTSeg, self).__init__(name=name,**kwargs)
+        super(VAEUnet3D, self).__init__(name=name,**kwargs)
         self.IMG_H       = IMG_H
         self.IMG_W       = IMG_W
         self.IMG_D       = IMG_D
@@ -73,7 +76,7 @@ class BraTSeg(tf.keras.Model):
         vae_loss: tf.keras.losses.Loss, 
         **kwargs
     ):  
-        super(BraTSeg, self).compile(**kwargs)
+        super(VAEUnet3D, self).compile(**kwargs)
         self.optimizer  = optimizer
         self.seg_loss   = seg_loss
         self.vae_loss   = vae_loss
@@ -88,7 +91,7 @@ class BraTSeg(tf.keras.Model):
         )
     
     @tf.function
-    def train_step(self, x_vol:tf.Tensor, y_mask:tf.Tensor):
+    def train_step(self, x_vol:tf.Tensor, y_mask:tf.Tensor) -> tuple[tf.Tensor, ...]:
         '''
         Forward pass, calculates total loss, metrics, and calculate gradients with respect to loss.
         args    x_vol : Input 3D volume -> tf.Tensor
@@ -138,7 +141,7 @@ class BraTSeg(tf.keras.Model):
 
     def summary(self):
         x = tf.keras.Input(shape=(self.IMG_H,self.IMG_W, self.IMG_D, self.IMG_C))
-        model = tf.keras.Model(inputs=[x], outputs=self.call(x), name='BraTSeg_Model')
+        model = tf.keras.Model(inputs=[x], outputs=self.call(x), name='VAEUnet3D_Model')
         return model.summary()
 
     def get_config(self):
@@ -160,16 +163,16 @@ if __name__ == "__main__":
     x = tf.ones(shape=(1, 160, 192, 128, 3))
     _, h, w, d, _ = x.shape.as_list()
 
-    brat_seg = BraTSeg(name='BratSeg')
-    # first call to the `brat_seg` will create weights
-    y = brat_seg(x)
+    vae_unet = VAEUnet3D(name='BratSeg')
+    # first call to the `vae_unet` will create weights
+    y = vae_unet(x)
 
-    tf.print("weights:", len(brat_seg.weights))
-    tf.print("trainable weights:", len(brat_seg.trainable_weights))
-    tf.print("config:", brat_seg.get_config())
+    tf.print("weights:", len(vae_unet.weights))
+    tf.print("trainable weights:", len(vae_unet.trainable_weights))
+    tf.print("config:", vae_unet.get_config())
     
     for i in range(len(y)):
         tf.print(f"Out{i}: {y[i].shape}")
-    tf.print(brat_seg.summary())
-    tf.print(brat_seg.unet3D.summary())
-    tf.print(brat_seg.vae_decoder.summary(input_shape=(h//8, w//8, d//8, 256)))
+    tf.print(vae_unet.summary())
+    tf.print(vae_unet.unet3D.summary())
+    tf.print(vae_unet.vae_decoder.summary(input_shape=(h//8, w//8, d//8, 256)))

@@ -23,23 +23,41 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 '''
+from __future__ import annotations
+from __future__ import absolute_import
 
 import tensorflow as tf
-from model.sampling import Sampling
-from model.group_norm import GroupNormalization
-from model.conv3d_module import Conv3d_module
+from MeSAI.layers.sampling import Sampling
+from MeSAI.layers.group_norm import GroupNormalization
+from MeSAI.layers.conv3d_module import Conv3d_module
 
 class VAE_decoder(tf.keras.Model):
-    def __init__(self, name:str, feat_h:int, feat_w:int, feat_d:int, **kwargs):
+    '''
+    Variational Autoencoder used as regulirizer used in paper 
+    '3D MRI brain tumor segmentation using autoencoder regularization'(https://arxiv.org/pdf/1810.11654v3.pdf)
+
+    args:
+        name:str
+        feat_h: int, Input feature map's Height
+        feat_w: int, Input feature map's Width
+        feat_d: int, Input feature map's Depth
+        bn: bool, Wheather to use Batch norm or Group norm. If False, Group norm will be
+
+    '''
+    def __init__(self, name:str, feat_h:int, feat_w:int, feat_d:int, bn:bool=False,**kwargs):
         super(VAE_decoder, self).__init__(name=name,  **kwargs)
 
         self.feat_h = feat_h
         self.feat_w = feat_w
         self.feat_d = feat_d
         self._L2_reg_f = 1e-5
+        self.bn = bn
 
-        self.group_norm = GroupNormalization(groups=8)
-        self.relu1 = tf.keras.layers.ReLU()
+        if self.bn:
+            self.norm = GroupNormalization(groups=8)
+        else:
+            self.norm = tf.keras.layers.BatchNormalization()
+
         self.conv1 = tf.keras.layers.Conv3D(
             filters=16,
             kernel_size=(3,3,3),
@@ -57,7 +75,6 @@ class VAE_decoder(tf.keras.Model):
         self.sampling = Sampling(name='sampling_1')
 
         self.dense2 = tf.keras.layers.Dense(units=((self.feat_h) * (self.feat_w) * (self.feat_d) * 1))
-        self.relu2 = tf.keras.layers.ReLU()
         self.reshape = tf.keras.layers.Reshape(target_shape=((self.feat_h), (self.feat_w), (self.feat_d), 1))
 
         self.conv2 = tf.keras.layers.Conv3D(
@@ -115,13 +132,13 @@ class VAE_decoder(tf.keras.Model):
         )
 
     
-    def call(self, inputs:tf.Tensor, **kwargs)->tuple:
+    def call(self, inputs:tf.Tensor, **kwargs) -> tuple[tf.Tensor, ...]:
         '''
         inputs =  output from encoder3d's last layer 
         '''
         # GroupNorm + conv(16)
-        x           = self.group_norm(inputs)
-        x           = self.relu1(x)
+        x           = self.norm(inputs)
+        x           = tf.nn.leaky_relu(x, 0.2)
         x           = self.conv1(x)
         
         # flatten + z_mean + z_var + sampling
@@ -133,7 +150,7 @@ class VAE_decoder(tf.keras.Model):
 
         # dense + reshape to 3d volume
         x           = self.dense2(x)
-        x           = self.relu2(x)
+        x           = tf.nn.leaky_relu(x, 0.2)
         x           = self.reshape(x)
 
         #conv2(256) + upsample -> (b,h,w,d,256)
@@ -180,6 +197,7 @@ class VAE_decoder(tf.keras.Model):
             'feat_h': self.feat_h,
             'feat_w': self.feat_w,
             'feat_d': self.feat_d,
+            'bn': self.bn
         }
         return config
     
