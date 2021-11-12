@@ -27,9 +27,15 @@ from __future__ import annotations
 from __future__ import absolute_import
 
 import tensorflow as tf
-from MeSAI.layers.sampling import Sampling
-from MeSAI.layers.group_norm import GroupNormalization
-from MeSAI.layers.conv3d_module import Conv3d_module
+
+try:
+    from MeSAI.layers.sampling import Sampling
+    from MeSAI.layers.group_norm import GroupNormalization
+    from MeSAI.layers.conv3d_module import Conv3d_module
+except:
+    from sampling import Sampling
+    from group_norm import GroupNormalization
+    from conv3d_module import Conv3d_module
 
 class VAE_decoder(tf.keras.Model):
     '''

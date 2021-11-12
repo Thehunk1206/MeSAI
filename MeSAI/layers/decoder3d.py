@@ -28,7 +28,11 @@ from __future__ import annotations
 from __future__ import absolute_import
 
 import tensorflow as tf
-from MeSAI.layers.conv3d_module import Conv3d_module
+try:
+    from MeSAI.layers.conv3d_module import Conv3d_module
+except:
+    from conv3d_module import Conv3d_module
+
 
 class Decoder3D(tf.keras.layers.Layer):
     def __init__(self, name:str, number_of_class:int, **kwargs):
