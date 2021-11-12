@@ -1,2 +1,2 @@
-# BraT-Segmentation
-3D MRI Brain Tumour Segmentation using Autoencoder Regularization
+# MeSAI(Medical Segmentation AI)
+Implementing some SOTA Medical Segmentation CNN architechture for segmenting Brain Tumor 
