@@ -24,15 +24,18 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 '''
 from __future__ import annotations
-from __future__ import absolute_import
 
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import tensorflow as tf
-from MeSAI.layers.encoder3d import Encoder3D
-from MeSAI.layers.decoder3d import Decoder3D
 
+try:
+    from MeSAI.layers.encoder3d import Encoder3D
+    from MeSAI.layers.decoder3d import Decoder3D
+except:
+    from layers.encoder3d import Encoder3D
+    from layers.decoder3d import Decoder3D
 
 from MeSAI.utils.metrics import dice_coef, iou_metric, Precision, Recall
 
