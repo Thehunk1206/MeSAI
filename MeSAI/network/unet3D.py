@@ -30,13 +30,8 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import tensorflow as tf
 
-try:
-    from MeSAI.layers.encoder3d import Encoder3D
-    from MeSAI.layers.decoder3d import Decoder3D
-except:
-    from layers.encoder3d import Encoder3D
-    from layers.decoder3d import Decoder3D
-
+from MeSAI.layers.encoder3d import Encoder3D
+from MeSAI.layers.decoder3d import Decoder3D
 from MeSAI.utils.metrics import dice_coef, iou_metric, Precision, Recall
 
 class Unet3D(tf.keras.Model):

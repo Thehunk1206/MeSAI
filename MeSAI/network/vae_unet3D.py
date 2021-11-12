@@ -32,16 +32,10 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import tensorflow as tf
 
-try:
-    from MeSAI.network.unet3D import Unet3D
-    from MeSAI.layers.vae_decoder import VAE_decoder
+from MeSAI.network.unet3D import Unet3D
+from MeSAI.layers.vae_decoder import VAE_decoder
 
-    from MeSAI.utils.metrics import dice_coef, iou_metric, Precision, Recall
-except:
-    from unet3D import Unet3D
-    from layers.vae_decoder import VAE_decoder
-
-    from utils.metrics import dice_coef, iou_metric, Precision, Recall
+from MeSAI.utils.metrics import dice_coef, iou_metric, Precision, Recall
 
 
 class VAEUnet3D(tf.keras.Model):
