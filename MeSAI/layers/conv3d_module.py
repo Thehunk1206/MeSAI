@@ -24,10 +24,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 '''
 from __future__ import annotations
-from __future__ import absolute_import
 
 import tensorflow as tf
-from MeSAI.layers.group_norm import GroupNormalization
+try:
+    from MeSAI.layers.group_norm import GroupNormalization
+except:
+    from group_norm import GroupNormalization
 
 class Conv3d_module(tf.keras.layers.Layer):
     def __init__(self, 
