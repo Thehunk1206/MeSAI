@@ -141,7 +141,8 @@ class Decoder3D(tf.keras.layers.Layer):
 
 
 if __name__ == "__main__":
-    decoder = Decoder3D(name='decoder_1', number_of_class=3)
+    enable_deepvision = True
+    decoder = Decoder3D(name='decoder_1', number_of_class=3, enable_deepvision=enable_deepvision)
     # first call to the `decoder` will create weights
     feature_1 = tf.ones(shape=(1,160,192,128,32))
     feature_2 = tf.ones(shape=(1,80,96,64,64))
@@ -155,5 +156,8 @@ if __name__ == "__main__":
     print("weights:", len(decoder.weights))
     print("trainable weights:", len(decoder.trainable_weights))
     print("config:", decoder.get_config())
-    print(f"Y: {y.shape}")
+    if enable_deepvision:
+        print(f"output: {y[0].shape}, {y[1].shape}, {y[2].shape}, {y[3].shape}, {y[4].shape}")
+    else:
+        print(f"output: {y.shape}")
 
