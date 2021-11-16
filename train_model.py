@@ -35,6 +35,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 from MeSAI.utils.dataset import TfdataPipeline
 from MeSAI.utils.losses import SoftDiceLoss, WBCEDICELoss, FocalTverskyLoss, VAE_loss
 from MeSAI.network.vae_unet3D import VAEUnet3D
+from MeSAI.network.unet3D import UNet3D
 
 import tensorflow as tf
 tf.random.set_seed(4)
@@ -53,6 +54,7 @@ def train(
     lr: float            = 1e-4,
     dataset_split: float = 0.1,
     logdir: str          = 'logs/',
+    model_name:str       = 'vae_unet3D',
     loss_function:str    = 'softdice',
     alpha:float          = 0.7,         
     gamma:int            = 3,
@@ -109,8 +111,8 @@ def train(
     
     #instantiate Model (BraT_Seg)
     tf.print(f'[INFO] Creating Model...\n')
-    vae_unet = VAEUnet3D(
-        name='vae_unet',
+    seg_model = VAEUnet3D(
+        name='seg_model',
         IMG_H=IMG_H,
         IMG_W=IMG_W,
         IMG_D=IMG_D,
@@ -120,7 +122,7 @@ def train(
 
     #compile the model
     tf.print(f'[INFO] Compiling Model...\n')
-    vae_unet.compile(
+    seg_model.compile(
         optimizer=optimizer,
         seg_loss=seg_loss,
         vae_loss=vae_loss
@@ -128,9 +130,9 @@ def train(
 
     
     tf.print(f'[INFO] Summary of all model\n')
-    tf.print(vae_unet.summary())
-    tf.print(vae_unet.unet3D.summary())
-    tf.print(vae_unet.vae_decoder.summary(input_shape=(IMG_H//8, IMG_W//8, IMG_D//8, 256)))
+    tf.print(seg_model.summary())
+    # tf.print(seg_model.unet3D.summary())
+    # tf.print(seg_model.vae_decoder.summary(input_shape=(IMG_H//8, IMG_W//8, IMG_D//8, 256)))
 
     tf.print('\n')
     tf.print('*'*60)
@@ -138,7 +140,7 @@ def train(
     tf.print('*'*60)
     tf.print(
         f'\n',
-        f'Training and validating Model : {vae_unet.name} \n',
+        f'Training and validating Model : {seg_model.name} \n',
         f'Epochs                        : {epochs} \n',
         f'learing_rate                  : {lr} \n',
         f'Input shape                   : ({IMG_H},{IMG_W},{IMG_D},{IMG_C}) \n',
@@ -152,12 +154,12 @@ def train(
         t = time()
 
         for (train_img_vol, train_seg_vol) in tqdm(train_data, unit='steps', desc='training...', colour='red'):
-            train_loss, train_dice, train_iou, train_precision, train_recall = vae_unet.train_step(
+            train_loss, train_dice, train_iou, train_precision, train_recall = seg_model.train_step(
                                                                                         x_vol=train_img_vol,
                                                                                         y_mask=train_seg_vol
                                                                                     )
         for (val_img_vol, val_seg_vol) in tqdm(val_data, unit='steps', desc='validating...', colour='green'):
-            val_loss, val_dice, val_iou, val_precision, val_recall = vae_unet.test_step(
+            val_loss, val_dice, val_iou, val_precision, val_recall = seg_model.test_step(
                                                                                 x_vol=val_img_vol,
                                                                                 y_mask=val_seg_vol
                                                                             )

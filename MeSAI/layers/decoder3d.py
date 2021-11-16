@@ -26,6 +26,7 @@ SOFTWARE.
 
 from __future__ import annotations
 from __future__ import absolute_import
+from typing import Tuple, Union
 
 import tensorflow as tf
 try:
@@ -35,11 +36,12 @@ except:
 
 
 class Decoder3D(tf.keras.layers.Layer):
-    def __init__(self, name:str, number_of_class:int, **kwargs):
+    def __init__(self, name:str, number_of_class:int, enable_deepvision: bool = False, **kwargs):
         super(Decoder3D, self).__init__(name=name, **kwargs)
         
         self.number_of_class = number_of_class
         self._L2_reg_f = 1e-5
+        self.enable_deepvision = enable_deepvision
 
         self.conv_1 = tf.keras.layers.Conv3D(
             filters=128,
@@ -76,7 +78,7 @@ class Decoder3D(tf.keras.layers.Layer):
 
         self.conv_4 = tf.keras.layers.Conv3D(
             filters=16,
-            kernel_size=(3,3,3),
+            kernel_size=(1,1,1),
             padding='same',
             kernel_regularizer=tf.keras.regularizers.L2(self._L2_reg_f)
         )
@@ -87,39 +89,49 @@ class Decoder3D(tf.keras.layers.Layer):
             strides=(1,1,1)
         )
     
-    def call(self, inputs:tuple, **kwargs) -> tf.Tensor:
+    def call(self, inputs:tuple, **kwargs) -> Union(tf.Tensor, Tuple[tf.Tensor, ...]):
         '''
         input here will be a tuple from Encder. 
         This Tuple contains all low to high level 
         feature (out_1, out_2, out_3, out_4).
         (32channels, 64channels, 128channels, 256channels)
         '''
-        x = self.conv_1(inputs[-1])
-        x = self.upsample_1(x)
-        x = self.add_1([x, inputs[-2]])
-        x = self.conv_module_1(x)       # out 128 channels
+        x         = self.conv_1(inputs[-1])
+        x         = self.upsample_1(x)
+        x         = self.add_1([x, inputs[-2]])
+        x_out_128 = self.conv_module_1(x)       # out 128 channels
 
-        x = self.conv_2(x)
-        x = self.upsample_2(x)
-        x = self.add_2([x, inputs[1]])
-        x = self.conv_module_2(x)       # out 64 channels
+        x         = self.conv_2(x_out_128)
+        x         = self.upsample_2(x)
+        x         = self.add_2([x, inputs[1]])
+        x_out_64  = self.conv_module_2(x)       # out 64 channels
 
-        x = self.conv_3(x)
-        x = self.upsample_3(x)
-        x = self.add_3([x, inputs[0]])
-        x = self.conv_module_3(x)       # out 32 channels
+        x         = self.conv_3(x_out_64)
+        x         = self.upsample_3(x)
+        x         = self.add_3([x, inputs[0]])
+        x_out_32  = self.conv_module_3(x)       # out 32 channels
 
-        x = self.conv_4(x)              # out 16 channels
+        x_out_16  = self.conv_4(x_out_32)       # out 16 channels
 
-        x = self.conv_5(x)              # final output with channel as class
-        x_out = tf.sigmoid(x)
+        x_out     = self.conv_5(x_out_16)       # final output with channel as class
 
-        return x_out
-    
+        if self.enable_deepvision:
+            x_out_128 = tf.sigmoid(x_out_128)
+            x_out_64  = tf.sigmoid(x_out_64)
+            x_out_32  = tf.sigmoid(x_out_32)
+            x_out_16  = tf.sigmoid(x_out_16)
+            x_out     = tf.sigmoid(x_out)
+
+            return x_out, x_out_128, x_out_64, x_out_32, x_out_16
+        else:
+            x_out = tf.sigmoid(x_out)
+            return x_out 
+
     def get_config(self):
         config = super(Decoder3D, self).get_config()
         config.update({
-            'number of class' : self.number_of_class
+            'number of class'   : self.number_of_class,
+            'enable deepvision' : self.enable_deepvision
         })
         return config
     
