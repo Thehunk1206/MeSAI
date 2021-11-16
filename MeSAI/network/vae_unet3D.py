@@ -46,7 +46,7 @@ class VAEUnet3D(tf.keras.Model):
         IMG_W: int = 192,
         IMG_D: int = 128,
         IMG_C: int = 3,
-        out_channel: int = 3,
+        number_of_class: int = 3,
          **kwargs
     ):
         super(VAEUnet3D, self).__init__(name=name,**kwargs)
@@ -54,9 +54,9 @@ class VAEUnet3D(tf.keras.Model):
         self.IMG_W       = IMG_W
         self.IMG_D       = IMG_D
         self.IMG_C       = IMG_C
-        self.out_channel = out_channel
+        self.number_of_class = number_of_class
 
-        self.unet3D      = Unet3D(name='Unet3D', number_of_class=self.out_channel)
+        self.unet3D      = Unet3D(name='Unet3D', number_of_class=self.number_of_class)
         self.vae_decoder = VAE_decoder(
                                         name='vae_decoder',
                                         feat_h=self.IMG_H//16, 
@@ -151,7 +151,7 @@ class VAEUnet3D(tf.keras.Model):
             'Image_W':        self.IMG_W,
             'Image_D':        self.IMG_D,
             'Image_C':        self.IMG_C,
-            'Output Channel': self.out_channel
+            'Number of class': self.number_of_class
         }
         return config
     

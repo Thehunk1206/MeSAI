@@ -29,19 +29,30 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import tensorflow as tf
+from tensorflow.keras.layers import Resizing
 
 from MeSAI.layers.encoder3d import Encoder3D
 from MeSAI.layers.decoder3d import Decoder3D
 from MeSAI.utils.metrics import dice_coef, iou_metric, Precision, Recall
 
 class Unet3D(tf.keras.Model):
-    def __init__(self,name:str,number_of_class:int = 3, *args, **kwargs):
+    def __init__(self,
+        name:str,
+        number_of_class:int = 3, 
+        enable_deepsupervision:bool = False,
+        IMG_H: int = 160,
+        IMG_W: int = 192,
+        IMG_D: int = 128,
+        IMG_C: int = 3,
+        *args, **kwargs
+    ):
         super(Unet3D, self).__init__(name=name,*args, **kwargs)
 
         self.number_of_class = number_of_class
+        self.enable_deepvison = enable_deepsupervision
 
         self.encoder = Encoder3D(name='encoder3d')
-        self.decoder = Decoder3D(name='decoder3d', number_of_class=self.number_of_class)
+        self.decoder = Decoder3D(name='decoder3d', number_of_class=self.number_of_class, enable_deepsupervision=self.enable_deepsupervision)
 
 
     def call(self, inputs:tf.Tensor, training:bool=None)->tf.Tensor:
