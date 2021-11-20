@@ -29,6 +29,8 @@ from __future__ import absolute_import
 from typing import Tuple, Union
 
 import tensorflow as tf
+from resize_mri_volume import ResizeVolume
+
 try:
     from MeSAI.layers.conv3d_module import Conv3d_module
 except:
@@ -53,12 +55,7 @@ class Decoder3D(tf.keras.layers.Layer):
         self.upsample_1 = tf.keras.layers.UpSampling3D(size=(2,2,2))
         self.add_1 = tf.keras.layers.Add()
         self.conv_module_1 = Conv3d_module(filters=128)
-        self.conv_module_1_out = tf.keras.layers.Conv3D(
-            filters=number_of_class,
-            kernel_size=(1,1,1),
-            strides=(1,1,1),
-            padding='same'
-        )
+        
 
         self.conv_2 = tf.keras.layers.Conv3D(
             filters=64,
@@ -70,12 +67,7 @@ class Decoder3D(tf.keras.layers.Layer):
         self.upsample_2 = tf.keras.layers.UpSampling3D(size=(2,2,2))
         self.add_2 = tf.keras.layers.Add()
         self.conv_module_2 = Conv3d_module(filters=64)
-        self.conv_module_2_out = tf.keras.layers.Conv3D(
-            filters=number_of_class,
-            kernel_size=(1,1,1),
-            strides=(1,1,1),
-            padding='same'
-        )
+        
 
         self.conv_3 = tf.keras.layers.Conv3D(
             filters=32,
@@ -87,12 +79,7 @@ class Decoder3D(tf.keras.layers.Layer):
         self.upsample_3 = tf.keras.layers.UpSampling3D(size=(2,2,2))
         self.add_3 = tf.keras.layers.Add()
         self.conv_module_3 = Conv3d_module(filters=32)
-        self.conv_module_3_out = tf.keras.layers.Conv3D(
-            filters=number_of_class,
-            kernel_size=(1,1,1),
-            strides=(1,1,1),
-            padding='same'
-        )
+        
 
         self.conv_4 = tf.keras.layers.Conv3D(
             filters=16,
@@ -100,17 +87,44 @@ class Decoder3D(tf.keras.layers.Layer):
             padding='same',
             kernel_regularizer=tf.keras.regularizers.L2(self._L2_reg_f)
         )
-        self.conv_4_out = tf.keras.layers.Conv3D(
-            filters=number_of_class,
-            kernel_size=(1,1,1),
-            padding='same'
-        )
 
         self.conv_5 = tf.keras.layers.Conv3D(
             filters=self.number_of_class,
             kernel_size=(1,1,1),
             strides=(1,1,1)
         )
+
+        if self.enable_deepsupervision:
+            self.aux_out_1 = tf.keras.layers.Conv3D(
+                filters=self.number_of_class,
+                kernel_size=(1,1,1),
+                strides=(1,1,1),
+                padding='same'
+            )
+
+            self.aux_out_2 = tf.keras.layers.Conv3D(
+                filters=self.number_of_class,
+                kernel_size=(1,1,1),
+                strides=(1,1,1),
+                padding='same'
+            )
+
+            self.aux_out_3 = tf.keras.layers.Conv3D(
+                filters=self.number_of_class,
+                kernel_size=(1,1,1),
+                strides=(1,1,1),
+                padding='same'
+            )
+
+            self.aux_out_4 = tf.keras.layers.Conv3D(
+                filters=self.number_of_class,
+                kernel_size=(1,1,1),
+                strides=(1,1,1),
+                padding='same'
+            )
+
+
+
     
     def call(self, inputs:tuple, **kwargs) -> Union(tf.Tensor, Tuple[tf.Tensor, ...]):
         '''
@@ -123,30 +137,43 @@ class Decoder3D(tf.keras.layers.Layer):
         x         = self.upsample_1(x)
         x         = self.add_1([x, inputs[-2]])
         x         = self.conv_module_1(x)       # out 128 channels
-        x_out_128 = self.conv_module_1_out(x)
+        if self.enable_deepsupervision:
+            x_out_128 = self.aux_out_1(x)
 
         x         = self.conv_2(x)
         x         = self.upsample_2(x)
         x         = self.add_2([x, inputs[1]])
         x         = self.conv_module_2(x)       # out 64 channels
-        x_out_64  = self.conv_module_2_out(x)
+        if self.enable_deepsupervision:
+            x_out_64  = self.aux_out_2(x)
 
         x         = self.conv_3(x)
         x         = self.upsample_3(x)
         x         = self.add_3([x, inputs[0]])
         x         = self.conv_module_3(x)       # out 32 channels
-        x_out_32  = self.conv_module_3_out(x)
+        if self.enable_deepsupervision:
+            x_out_32  = self.aux_out_3(x)
 
-        x         = self.conv_4(x)       # out 16 channels
-        x_out_16  = self.conv_4_out(x)
+        x         = self.conv_4(x)              # out 16 channels
+        if self.enable_deepsupervision:
+            x_out_16  = self.aux_out_4(x)
 
-        x_out     = self.conv_5(x)       # final output with channel as class
+        x_out     = self.conv_5(x)              # final output with channel as class
 
         if self.enable_deepsupervision:
+            # Resize to final output size
+            x_out_128 = ResizeVolume(target_h=x_out.shape[1],target_w=x_out.shape[2],target_d=x_out.shape[3])(x_out_128)
             x_out_128 = tf.sigmoid(x_out_128)
+
+            x_out_64  = ResizeVolume(target_h=x_out.shape[1],target_w=x_out.shape[2],target_d=x_out.shape[3])(x_out_64) 
             x_out_64  = tf.sigmoid(x_out_64)
+
+            x_out_32  = ResizeVolume(target_h=x_out.shape[1],target_w=x_out.shape[2],target_d=x_out.shape[3])(x_out_32)
             x_out_32  = tf.sigmoid(x_out_32)
+
+            x_out_16  = ResizeVolume(target_h=x_out.shape[1],target_w=x_out.shape[2],target_d=x_out.shape[3])(x_out_16)
             x_out_16  = tf.sigmoid(x_out_16)
+
             x_out     = tf.sigmoid(x_out)
 
             return x_out, x_out_128, x_out_64, x_out_32, x_out_16
@@ -184,7 +211,9 @@ if __name__ == "__main__":
     print("trainable weights:", len(decoder.trainable_weights))
     print("config:", decoder.get_config())
     if enable_deepsupervision:
-        print(f"output: {y[0].shape}, {y[1].shape}, {y[2].shape}, {y[3].shape}, {y[4].shape}")
+        print("output: \n")
+        for feat in y:
+            print(feat.shape)
     else:
         print(f"output: {y.shape}")
 

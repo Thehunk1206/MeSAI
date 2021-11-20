@@ -29,7 +29,6 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import tensorflow as tf
-from tensorflow.keras.layers import Resizing
 
 from MeSAI.layers.encoder3d import Encoder3D
 from MeSAI.layers.decoder3d import Decoder3D
@@ -49,7 +48,7 @@ class Unet3D(tf.keras.Model):
         super(Unet3D, self).__init__(name=name,*args, **kwargs)
 
         self.number_of_class = number_of_class
-        self.enable_deepvison = enable_deepsupervision
+        self.enable_deepsupervision = enable_deepsupervision
 
         self.encoder = Encoder3D(name='encoder3d')
         self.decoder = Decoder3D(name='decoder3d', number_of_class=self.number_of_class, enable_deepsupervision=self.enable_deepsupervision)
@@ -60,6 +59,9 @@ class Unet3D(tf.keras.Model):
         output                      = self.decoder((x_32, x_64, x_128, x_256))
 
         # returning x_256 as input for VAE_decoder3d
+        if self.enable_deepsupervision:
+            pass
+            
         return output, x_256
 
     def compile(
