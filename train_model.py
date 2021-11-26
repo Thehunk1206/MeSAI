@@ -146,7 +146,7 @@ def train(
     )
 
     
-    tf.print(f'[INFO] Summary of all model\n')
+    tf.print(f'[INFO] Summary of model\n')
     tf.print(seg_model.summary())
 
     tf.print('\n')

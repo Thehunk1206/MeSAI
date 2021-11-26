@@ -182,7 +182,7 @@ class TfdataPipeline:
         dataset = tf.data.Dataset.from_tensor_slices((mri_path, seg_path))
 
         dataset = dataset.map(
-            self._map_dataset, num_parallel_calls=tf.data.AUTOTUNE).cache()
+            self._map_dataset, num_parallel_calls=tf.data.AUTOTUNE)#.cache()
         dataset = dataset.batch(batch_size=self.batch_size)
         dataset = dataset.prefetch(tf.data.AUTOTUNE)
 
