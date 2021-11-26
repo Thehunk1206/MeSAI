@@ -120,7 +120,7 @@ def train(
     if model_name == 'unet3d':
         seg_model = Unet3D(
             name = model_name,
-            number_of_classes = out_channel,
+            number_of_class = out_channel,
             enable_deepsupervision = enable_deepsupervision,
             IMG_H=IMG_H,
             IMG_W=IMG_W,
