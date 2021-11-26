@@ -35,7 +35,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 from MeSAI.utils.dataset import TfdataPipeline
 from MeSAI.utils.losses import SoftDiceLoss, WBCEDICELoss, FocalTverskyLoss
 from MeSAI.network.vae_unet3D import VAEUnet3D
-from MeSAI.network.unet3D import UNet3D
+from MeSAI.network.unet3D import Unet3D
 
 import tensorflow as tf
 tf.random.set_seed(4)
@@ -118,7 +118,7 @@ def train(
         sys.exit()
     
     if model_name == 'unet3d':
-        seg_model = UNet3D(
+        seg_model = Unet3D(
             name = model_name,
             number_of_classes = out_channel,
             enable_deepsupervision = enable_deepsupervision,
