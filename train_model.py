@@ -161,7 +161,7 @@ def train(
         f'Input shape                   : ({IMG_H},{IMG_W},{IMG_D},{IMG_C}) \n',
         f'Batch size                    : {batch_size} \n',
         f'Dataset split                 : {dataset_split} \n',
-        f'Gradient Clipping value       : {gclip}'
+        f'Gradient Clipping value       : {gclip}\n'
         f'Loss Function                 : {loss_function} \n',
         f'Deep Super Vision             : {enable_deepsupervision}\n',
         f'Output Channel                : {out_channel} \n',

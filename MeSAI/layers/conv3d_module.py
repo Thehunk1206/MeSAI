@@ -84,13 +84,6 @@ class Conv3d_module(tf.keras.layers.Layer):
             kernel_regularizer=tf.keras.regularizers.L2(l2=1e-5)
         )
 
-        self.conv3d_3 = tf.keras.layers.Conv3D(
-            filters=self.filters,
-            kernel_size=self.kernel_size,
-            strides=self.stride,
-            padding=self.padding,
-            kernel_regularizer=tf.keras.regularizers.L2(l2=1e-5)
-        )
 
         self.add = tf.keras.layers.Add()
 
@@ -101,7 +94,6 @@ class Conv3d_module(tf.keras.layers.Layer):
         x           = self.conv3d_2(x)
         x           = self.norm_2(x, training= training)
         x           = tf.nn.leaky_relu(x)
-        x           = self.conv3d_3(x)
         output      = self.add([x,x_shortcut])
 
         return output
