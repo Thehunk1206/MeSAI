@@ -29,12 +29,14 @@ from __future__ import absolute_import
 from typing import Tuple, Union
 
 import tensorflow as tf
-from resize_mri_volume import ResizeVolume
+
 
 try:
     from MeSAI.layers.conv3d_module import Conv3d_module
+    from MeSAI.layers.resize_mri_volume import ResizeVolume
 except:
     from conv3d_module import Conv3d_module
+    from resize_mri_volume import ResizeVolume
 
 
 class Decoder3D(tf.keras.layers.Layer):
