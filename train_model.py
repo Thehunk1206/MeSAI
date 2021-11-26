@@ -33,7 +33,7 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 from MeSAI.utils.dataset import TfdataPipeline
-from MeSAI.utils.losses import SoftDiceLoss, WBCEDICELoss, FocalTverskyLoss, VAE_loss
+from MeSAI.utils.losses import SoftDiceLoss, WBCEDICELoss, FocalTverskyLoss
 from MeSAI.network.vae_unet3D import VAEUnet3D
 from MeSAI.network.unet3D import UNet3D
 
@@ -50,11 +50,13 @@ def train(
     IMG_C: int           = 3,   #hardcoded
     out_channel: int     = 3,   #hardcoded
     batch_size: int      = 1,
-    epochs:int           = 100,
+    epochs:int           = 30,
     lr: float            = 1e-4,
     dataset_split: float = 0.1,
+    gclip: float         = 1.0,
     logdir: str          = 'logs/',
-    model_name:str       = 'vae_unet3D',
+    enable_deepsupervision: bool = True,
+    model_name:str       = 'unet3D',
     loss_function:str    = 'softdice',
     alpha:float          = 0.7,         
     gamma:int            = 3,
@@ -72,7 +74,7 @@ def train(
         os.mkdir(trained_model_dir)
     
     # instantiate tf.summary writer
-    logsdir = logdir + "Model/" + "BraTS_"+loss_function+datetime.now().strftime("%Y%m%d-%H%M%S")
+    logsdir = logdir + "Model/" + "BraTS_"+ model_name+"_"+loss_function+"_"+datetime.now().strftime("%Y%m%d-%H%M%S")
     train_writer = tf.summary.create_file_writer(logsdir + "/train/")
     val_writer = tf.summary.create_file_writer(logsdir + "/val/")
 
@@ -107,32 +109,45 @@ def train(
     if loss_function == 'focal_tversky':
         seg_loss = FocalTverskyLoss(name='focal_tversky_loss',alpha=alpha, gamma=gamma)
     
-    vae_loss = VAE_loss(name='vae_loss')
     
     #instantiate Model (BraT_Seg)
+    _model_list = ['unet3d', 'vae_unet3d']
     tf.print(f'[INFO] Creating Model...\n')
-    seg_model = VAEUnet3D(
-        name='seg_model',
-        IMG_H=IMG_H,
-        IMG_W=IMG_W,
-        IMG_D=IMG_D,
-        IMG_C=IMG_C,
-        out_channel=out_channel,
-    )
+    if model_name not in _model_list:
+        tf.print(f'Model name should be in f{_model_list} list')
+        sys.exit()
+    
+    if model_name == 'unet3d':
+        seg_model = UNet3D(
+            name = model_name,
+            number_of_classes = out_channel,
+            enable_deepsupervision = enable_deepsupervision,
+            IMG_H=IMG_H,
+            IMG_W=IMG_W,
+            IMG_D=IMG_D,
+            IMG_C=IMG_C,
+        )
+    if model_name == 'vae_unet3d':
+        seg_model = VAEUnet3D(
+            name=model_name,
+            IMG_H=IMG_H,
+            IMG_W=IMG_W,
+            IMG_D=IMG_D,
+            IMG_C=IMG_C,
+            number_of_class=out_channel,
+            enable_deepsupervision=enable_deepsupervision    
+        )
 
     #compile the model
     tf.print(f'[INFO] Compiling Model...\n')
     seg_model.compile(
         optimizer=optimizer,
-        seg_loss=seg_loss,
-        vae_loss=vae_loss
+        loss=seg_loss
     )
 
     
     tf.print(f'[INFO] Summary of all model\n')
     tf.print(seg_model.summary())
-    # tf.print(seg_model.unet3D.summary())
-    # tf.print(seg_model.vae_decoder.summary(input_shape=(IMG_H//8, IMG_W//8, IMG_D//8, 256)))
 
     tf.print('\n')
     tf.print('*'*60)
@@ -145,7 +160,10 @@ def train(
         f'learing_rate                  : {lr} \n',
         f'Input shape                   : ({IMG_H},{IMG_W},{IMG_D},{IMG_C}) \n',
         f'Batch size                    : {batch_size} \n',
+        f'Dataset split                 : {dataset_split} \n',
+        f'Gradient Clipping value       : {gclip}'
         f'Loss Function                 : {loss_function} \n',
+        f'Deep Super Vision             : {enable_deepsupervision}\n',
         f'Output Channel                : {out_channel} \n',
     )
 
@@ -156,7 +174,8 @@ def train(
         for (train_img_vol, train_seg_vol) in tqdm(train_data, unit='steps', desc='training...', colour='red'):
             train_loss, train_dice, train_iou, train_precision, train_recall = seg_model.train_step(
                                                                                         x_vol=train_img_vol,
-                                                                                        y_mask=train_seg_vol
+                                                                                        y_mask=train_seg_vol,
+                                                                                        gclip=gclip,
                                                                                     )
         for (val_img_vol, val_seg_vol) in tqdm(val_data, unit='steps', desc='validating...', colour='green'):
             val_loss, val_dice, val_iou, val_precision, val_recall = seg_model.test_step(
@@ -207,8 +226,14 @@ if __name__ == "__main__":
     parser.add_argument('--logdir', type=str, help="Tensorboard logs",
                         default='logs/')
     
+    parser.add_argument('--model_name', type=str,
+                        default='unet3d', help='model name')
+    
     parser.add_argument('--loss_function', type=str, help="choose loss function from ['softdice', 'w_bce_dice', 'focal_tversky']",
                         default='softdice')
+
+    parser.add_argument('--gclip', type=float, help="gradient clipping value",
+                        default=1.0)
     
     parser.add_argument('--alpha', type=float,
                         default=0.7, help='False Negative weigth fot Focal Tversky Loss')
@@ -219,19 +244,22 @@ if __name__ == "__main__":
     opt = parser.parse_args()
 
     train(
-        dataset_dir         =   opt.data_path,
-        trained_model_dir   =   opt.trained_model_path,
-        IMG_H               =   opt.img_h,
-        IMG_W               =   opt.img_w,
-        IMG_D               =   opt.img_d,
-        IMG_C               =   opt.img_c,
-        out_channel         =   opt.out_channel,
-        batch_size          =   opt.batchsize,
-        epochs              =   opt.epoch,
-        lr                  =   opt.lr,
-        dataset_split       =   opt.data_split,
-        logdir              =   opt.logdir,
-        loss_function       =   opt.loss_function,
-        alpha               =   opt.alpha,
-        gamma               =   opt.gamma,
+        dataset_dir             =   opt.data_path,
+        trained_model_dir       =   opt.trained_model_path,
+        IMG_H                   =   opt.img_h,
+        IMG_W                   =   opt.img_w,
+        IMG_D                   =   opt.img_d,
+        IMG_C                   =   opt.img_c,
+        out_channel             =   opt.out_channel,
+        batch_size              =   opt.batchsize,
+        epochs                  =   opt.epoch,
+        lr                      =   opt.lr,
+        dataset_split           =   opt.data_split,
+        logdir                  =   opt.logdir,
+        model_name              =   opt.model_name,
+        gclip                   =   opt.gclip,
+        loss_function           =   opt.loss_function,
+        enable_deepsupervision  =   True,
+        alpha                   =   opt.alpha,
+        gamma                   =   opt.gamma,
     )

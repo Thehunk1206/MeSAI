@@ -41,6 +41,9 @@ from MeSAI.utils.losses import L2loss
 from MeSAI.utils.metrics import dice_coef, iou_metric, Precision, Recall
 
 
+'''
+TODO: Test the VAE_UNET3D
+'''
 class VAEUnet3D(tf.keras.Model):
     def __init__(
         self, 
