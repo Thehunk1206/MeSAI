@@ -111,4 +111,4 @@ if __name__ == '__main__':
     tf.print(volume.shape)
     tf.print("Resizing...")
     resized_volume = ResizeVolume(target_h=160, target_w=192, target_d=128)(volume)
-    print(resized_volume.shape)
+    tf.print(resized_volume.shape)

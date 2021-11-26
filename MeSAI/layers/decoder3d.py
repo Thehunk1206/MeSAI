@@ -38,7 +38,7 @@ except:
 
 
 class Decoder3D(tf.keras.layers.Layer):
-    def __init__(self, name:str, number_of_class:int, enable_deepsupervision: bool = False, **kwargs):
+    def __init__(self, name:str, number_of_class:int, enable_deepsupervision: bool = True, **kwargs):
         super(Decoder3D, self).__init__(name=name, **kwargs)
         
         self.number_of_class = number_of_class

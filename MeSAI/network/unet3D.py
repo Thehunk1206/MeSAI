@@ -26,6 +26,7 @@ SOFTWARE.
 from __future__ import annotations
 
 import os
+from typing import Tuple, Union
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import tensorflow as tf
@@ -38,7 +39,7 @@ class Unet3D(tf.keras.Model):
     def __init__(self,
         name:str,
         number_of_class:int = 3, 
-        enable_deepsupervision:bool = False,
+        enable_deepsupervision:bool = True,
         IMG_H: int = 160,
         IMG_W: int = 192,
         IMG_D: int = 128,
@@ -49,24 +50,25 @@ class Unet3D(tf.keras.Model):
 
         self.number_of_class = number_of_class
         self.enable_deepsupervision = enable_deepsupervision
+        self.IMG_H = IMG_H
+        self.IMG_W = IMG_W
+        self.IMG_D = IMG_D
+        self.IMG_C = IMG_C
 
         self.encoder = Encoder3D(name='encoder3d')
         self.decoder = Decoder3D(name='decoder3d', number_of_class=self.number_of_class, enable_deepsupervision=self.enable_deepsupervision)
 
 
-    def call(self, inputs:tf.Tensor, training:bool=None)->tf.Tensor:
+    def call(self, inputs:tf.Tensor, training:bool=None)->Tuple[Union(tf.Tensor, Tuple[tf.Tensor, ...]), tf.Tensor]:
         x_32, x_64, x_128, x_256    = self.encoder(inputs)
         output                      = self.decoder((x_32, x_64, x_128, x_256))
 
         # returning x_256 as input for VAE_decoder3d
-        if self.enable_deepsupervision:
-            pass
-            
         return output, x_256
 
     def compile(
         self, optimizer:tf.keras.optimizers.Optimizer, 
-        loss:tf.losses.Loss, 
+        loss: Union(tf.keras.losses.Loss, Tuple[tf.keras.losses.Loss, ...]),
         loss_weights=None, 
         **kwargs
     ):
@@ -76,29 +78,38 @@ class Unet3D(tf.keras.Model):
         self.loss_weights   = loss_weights
 
     @tf.function
-    def train_step(self, x_vol:tf.Tensor, y_mask:tf.Tensor) -> tuple[tf.Tensor, ...]:
+    def train_step(self, x_vol:tf.Tensor, y_mask:tf.Tensor, gclip:float) -> tuple[tf.Tensor, ...]:
         '''
         Forward pass, calculates total loss, metrics, and calculate gradients with respect to loss.
         args    x_vol : Input 3D volume -> tf.Tensor
                 y_mask: 3D Mask map of x_vol -> tf.Tensor
+                gclip : Gradient Clipping value -> float
         
         returns total_loss, train_dice, train_iou, train_precision, train_recall
         '''
         with tf.GradientTape() as tape:
-            pred_seg_vol, _ = self(x_vol, training = True)
-            train_loss = self.loss(y_mask, pred_seg_vol)
+            pred_seg_vol,_ = self(x_vol, training = True)
+
+            # Check dtype of pred_seg_vol 
+            if isinstance(pred_seg_vol, tuple):
+                train_loss = 0
+                for pred in pred_seg_vol:
+                    train_loss += self.loss(y_mask, pred)
+            else:
+                train_loss = self.loss(y_mask, pred_seg_vol)
         
         #Calculate gradients
         gradients = tape.gradient(train_loss, self.trainable_variables)
+        gradients = [(tf.clip_by_value(grad, clip_value_min=-gclip, clip_value_max=gclip)) for grad in gradients]
 
         # Backpropogation
         self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
 
         # Calculate metrics
-        train_dice      = dice_coef(y_mask=y_mask, y_pred=pred_seg_vol)
-        train_iou       = iou_metric(y_mask=y_mask, y_pred=pred_seg_vol)
-        train_precision = Precision(y_mask=y_mask, y_pred=pred_seg_vol)
-        train_recall    = Recall(y_mask=y_mask, y_pred=pred_seg_vol)
+        train_dice      = dice_coef(y_mask=y_mask, y_pred=pred_seg_vol[0]) if isinstance(pred_seg_vol, tuple) else dice_coef(y_mask=y_mask, y_pred=pred_seg_vol)
+        train_iou       = iou_metric(y_mask=y_mask, y_pred=pred_seg_vol[0]) if isinstance(pred_seg_vol, tuple) else iou_metric(y_mask=y_mask, y_pred=pred_seg_vol)
+        train_precision = Precision(y_mask=y_mask, y_pred=pred_seg_vol[0]) if isinstance(pred_seg_vol, tuple) else Precision(y_mask=y_mask, y_pred=pred_seg_vol)
+        train_recall    = Recall(y_mask=y_mask, y_pred=pred_seg_vol[0]) if isinstance(pred_seg_vol, tuple) else Recall(y_mask=y_mask, y_pred=pred_seg_vol)
 
         return train_loss, train_dice, train_iou, train_precision, train_recall
 
@@ -114,24 +125,36 @@ class Unet3D(tf.keras.Model):
         '''
         # Forword pass
         pred_seg_vol, _ = self(x_vol, training = False)
-        val_loss = self.loss(y_mask, pred_seg_vol)
 
-        val_dice      = dice_coef(y_mask=y_mask, y_pred=pred_seg_vol)
-        val_iou       = iou_metric(y_mask=y_mask, y_pred=pred_seg_vol)
-        val_precision = Precision(y_mask=y_mask, y_pred=pred_seg_vol)
-        val_recall    = Recall(y_mask=y_mask, y_pred=pred_seg_vol)
+        # Check dtype of pred_seg_vol
+        if isinstance(pred_seg_vol, tuple):
+            val_loss = 0
+            for pred in pred_seg_vol:
+                val_loss += self.loss(y_mask, pred)
+        else:
+            val_loss = self.loss(y_mask, pred_seg_vol)
+
+        val_dice      = dice_coef(y_mask=y_mask, y_pred=pred_seg_vol[0]) if isinstance(pred_seg_vol, tuple) else dice_coef(y_mask=y_mask, y_pred=pred_seg_vol)
+        val_iou       = iou_metric(y_mask=y_mask, y_pred=pred_seg_vol[0]) if isinstance(pred_seg_vol, tuple) else iou_metric(y_mask=y_mask, y_pred=pred_seg_vol)
+        val_precision = Precision(y_mask=y_mask, y_pred=pred_seg_vol[0]) if isinstance(pred_seg_vol, tuple) else Precision(y_mask=y_mask, y_pred=pred_seg_vol)
+        val_recall    = Recall(y_mask=y_mask, y_pred=pred_seg_vol[0]) if isinstance(pred_seg_vol, tuple) else Recall(y_mask=y_mask, y_pred=pred_seg_vol)
 
         return val_loss, val_dice, val_iou, val_precision, val_recall
         
 
     def summary(self):
-        x = tf.keras.Input(shape=(160,192,128,3))
+        x = tf.keras.Input(shape=(self.IMG_H,self.IMG_W,self.IMG_D,self.IMG_C))
         model = tf.keras.Model(inputs=[x], outputs=self.call(x), name='Unet3D')
         return model.summary()
-    
+
     def get_config(self):
         config = {
-            'number_of_class':self.number_of_class
+            'number_of_class': self.number_of_class,
+            'enable_deepsupervision': self.enable_deepsupervision,
+            'IMG_H': self.IMG_H,
+            'IMG_W': self.IMG_W,
+            'IMG_D': self.IMG_D,
+            'IMG_C': self.IMG_C,
         }
         return config
     

@@ -28,12 +28,15 @@ from __future__ import annotations
 from __future__ import absolute_import
 
 import os
+from typing import Tuple, Union
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import tensorflow as tf
 
 from MeSAI.network.unet3D import Unet3D
 from MeSAI.layers.vae_decoder import VAE_decoder
+from MeSAI.utils.losses import L2loss
 
 from MeSAI.utils.metrics import dice_coef, iou_metric, Precision, Recall
 
@@ -47,6 +50,7 @@ class VAEUnet3D(tf.keras.Model):
         IMG_D: int = 128,
         IMG_C: int = 3,
         number_of_class: int = 3,
+        enable_deepsupervision: bool = True,
          **kwargs
     ):
         super(VAEUnet3D, self).__init__(name=name,**kwargs)
@@ -55,8 +59,10 @@ class VAEUnet3D(tf.keras.Model):
         self.IMG_D       = IMG_D
         self.IMG_C       = IMG_C
         self.number_of_class = number_of_class
+        self.enable_deepsupervision = enable_deepsupervision
+        self.l2_loss = L2loss(name='L2loss')
 
-        self.unet3D      = Unet3D(name='Unet3D', number_of_class=self.number_of_class)
+        self.unet3D      = Unet3D(name='Unet3D', number_of_class=self.number_of_class, enable_deepsupervision=self.enable_deepsupervision)
         self.vae_decoder = VAE_decoder(
                                         name='vae_decoder',
                                         feat_h=self.IMG_H//16, 
@@ -67,54 +73,68 @@ class VAEUnet3D(tf.keras.Model):
     def call(self, inputs: tf.Tensor, training: bool = True):
         pred_seg_vol, x_256             = self.unet3D(inputs, training = training)
         z_mean,z_var,reconstructed_vol  = self.vae_decoder(x_256, training = training)
-        
-        return pred_seg_vol, reconstructed_vol, z_mean, z_var
+
+        kl_loss = -0.5 * tf.reduce_mean(1 + z_var - tf.square(z_mean) - tf.exp(z_var))
+        self.add_loss(kl_loss)
+
+        return pred_seg_vol, reconstructed_vol
     
     def compile(
         self, 
         optimizer:tf.keras.optimizers.Optimizer, 
-        seg_loss:tf.keras.losses.Loss,
-        vae_loss: tf.keras.losses.Loss, 
+        loss: Union(tf.keras.losses.Loss, Tuple[tf.keras.losses.Loss, ...]),
         **kwargs
     ):  
         super(VAEUnet3D, self).compile(**kwargs)
         self.optimizer  = optimizer
-        self.seg_loss   = seg_loss
-        self.vae_loss   = vae_loss
-
+        self.loss       = loss
+        
         self.unet3D.compile(
             optimizer=self.optimizer,
-            loss=self.seg_loss
+            loss=self.loss
         )
         self.vae_decoder.compile(
             optimizer=self.optimizer,
-            loss=self.vae_loss
+            loss=self.loss
         )
     
     @tf.function
-    def train_step(self, x_vol:tf.Tensor, y_mask:tf.Tensor) -> tuple[tf.Tensor, ...]:
+    def train_step(self, x_vol:tf.Tensor, y_mask:tf.Tensor, gclip:float) -> tuple[tf.Tensor, ...]:
         '''
         Forward pass, calculates total loss, metrics, and calculate gradients with respect to loss.
         args    x_vol : Input 3D volume -> tf.Tensor
                 y_mask: 3D Mask map of x_vol -> tf.Tensor
+                gclip : Gradient Clipping value -> float
         
         returns total_loss, train_dice, train_iou, train_precision, train_recall
         '''
         with tf.GradientTape() as tape:
-            pred_seg_vol, reconstructed_vol, z_mean, z_var = self(x_vol, training=True)
-            loss1 = self.seg_loss(y_mask, pred_seg_vol)
-            loss2 = self.vae_loss(x_vol, reconstructed_vol, z_mean, z_var)
-            train_loss = loss1+loss2
+            pred_seg_vol, reconstructed_vol = self(x_vol, training=True)
+            
+            #Check dtype of pred_seg_vol
+            if isinstance(pred_seg_vol, tuple):
+                loss1 = 0
+                for pred in pred_seg_vol:
+                    loss1 += self.loss(y_mask, pred)
+            else:
+                loss1 = self.loss(y_mask, pred_seg_vol)
+    
+            loss2 = self.loss(y_mask, pred_seg_vol)
+            loss3 = 0.1 * self.l2_loss(x_vol, reconstructed_vol)
+            loss4 = 0.1 * self.losses
+
+            train_loss = loss1 + loss2 + loss3 + loss4 
         
         gradients = tape.gradient(train_loss, self.trainable_variables)
+        gradients = [tf.clip_by_value(grad, -gclip, gclip) for grad in gradients]
 
         self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
 
         #calculate metrics
-        train_dice      = dice_coef(y_mask=y_mask, y_pred=pred_seg_vol)
-        train_iou       = iou_metric(y_mask=y_mask, y_pred=pred_seg_vol)
-        train_precision = Precision(y_mask=y_mask, y_pred=pred_seg_vol)
-        train_recall    = Recall(y_mask=y_mask, y_pred=pred_seg_vol)
+        train_dice      = dice_coef(y_mask=y_mask, y_pred=pred_seg_vol[0]) if isinstance(pred_seg_vol, tuple) else dice_coef(y_mask=y_mask, y_pred=pred_seg_vol)
+        train_iou       = iou_metric(y_mask=y_mask, y_pred=pred_seg_vol[0]) if isinstance(pred_seg_vol, tuple) else iou_metric(y_mask=y_mask, y_pred=pred_seg_vol)
+        train_precision = Precision(y_mask=y_mask, y_pred=pred_seg_vol[0]) if isinstance(pred_seg_vol, tuple) else Precision(y_mask=y_mask, y_pred=pred_seg_vol)
+        train_recall    = Recall(y_mask=y_mask, y_pred=pred_seg_vol[0]) if isinstance(pred_seg_vol, tuple) else Recall(y_mask=y_mask, y_pred=pred_seg_vol)
 
         return train_loss, train_dice, train_iou, train_precision, train_recall
 
@@ -127,16 +147,24 @@ class VAEUnet3D(tf.keras.Model):
         
         returns total_loss, val_dice, val_iou, val_precision, val_recall
         '''
-        pred_seg_vol, reconstructed_vol, z_mean, z_var = self(x_vol, training=False)
-        loss1 = self.vae_loss(x_vol, reconstructed_vol, z_mean, z_var)
-        loss2 = self.seg_loss(y_mask, pred_seg_vol)
-        val_loss = loss1+loss2
+        pred_seg_vol, reconstructed_vol = self(x_vol, training=False)
+        if isinstance(pred_seg_vol, tuple):
+            loss1 = 0
+            for pred in pred_seg_vol:
+                loss1 += self.loss(y_mask, pred)
+        else:
+            loss1 = self.loss(y_mask, pred_seg_vol)
+    
+        loss2 = self.loss(y_mask, pred_seg_vol)
+        loss3 = 0.1 * self.l2_loss(x_vol, reconstructed_vol)
+        loss4 = 0.1 * self.losses
+        val_loss = loss1 + loss2 + loss3 + loss4
 
         #calculate metrics
-        val_dice      = dice_coef(y_mask=y_mask, y_pred=pred_seg_vol)
-        val_iou       = iou_metric(y_mask=y_mask, y_pred=pred_seg_vol)
-        val_precision = Precision(y_mask=y_mask, y_pred=pred_seg_vol)
-        val_recall    = Recall(y_mask=y_mask, y_pred=pred_seg_vol)
+        val_dice      = dice_coef(y_mask=y_mask, y_pred=pred_seg_vol[0]) if isinstance(pred_seg_vol, tuple) else dice_coef(y_mask=y_mask, y_pred=pred_seg_vol)
+        val_iou       = iou_metric(y_mask=y_mask, y_pred=pred_seg_vol[0]) if isinstance(pred_seg_vol, tuple) else iou_metric(y_mask=y_mask, y_pred=pred_seg_vol)
+        val_precision = Precision(y_mask=y_mask, y_pred=pred_seg_vol[0]) if isinstance(pred_seg_vol, tuple) else Precision(y_mask=y_mask, y_pred=pred_seg_vol)
+        val_recall    = Recall(y_mask=y_mask, y_pred=pred_seg_vol[0]) if isinstance(pred_seg_vol, tuple) else Recall(y_mask=y_mask, y_pred=pred_seg_vol)
 
         return val_loss, val_dice, val_iou, val_precision, val_recall
 
@@ -147,11 +175,12 @@ class VAEUnet3D(tf.keras.Model):
 
     def get_config(self):
         config = {
-            'Image_H':        self.IMG_H,
-            'Image_W':        self.IMG_W,
-            'Image_D':        self.IMG_D,
-            'Image_C':        self.IMG_C,
-            'Number of class': self.number_of_class
+            'Image_H'               : self.IMG_H,
+            'Image_W'               : self.IMG_W,
+            'Image_D'               : self.IMG_D,
+            'Image_C'               : self.IMG_C,
+            'Number of class'       : self.number_of_class,
+            'enable_deepsupervision': self.enable_deepsupervision,
         }
         return config
     

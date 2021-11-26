@@ -130,34 +130,21 @@ class FocalTverskyLoss(tf.keras.losses.Loss):
         return super().from_config(config)
 
 
-class VAE_loss(tf.keras.losses.Loss):
-    def __init__(self, name: str, weight_l2: float = 0.1, weight_kl:float = 0.1):
-        super(VAE_loss, self).__init__(name=name)
-        self.weight_l2 = weight_l2
-        self.weight_kl = weight_kl
+class L2loss(tf.keras.losses.Loss):
+    def __init__(self, name: str):
+        super(L2loss, self).__init__(name=name)
 
     @tf.function
-    def __call__(self, x_vol: tf.Tensor, x_reconstructed: tf.Tensor, z_mean: tf.Tensor, z_var :tf.Tensor):
+    def call(self, x_vol: tf.Tensor, x_reconstructed: tf.Tensor):
         assert len(x_vol.shape) == 5, f"x_vol should be of rank 5 but got {len(x_vol.shape)} with shape as {x_vol.shape}"
         assert len(x_reconstructed.shape) == 5, f"x_reconstructed should be of rank 5 but got {len(x_reconstructed.shape)} with shape as {x_reconstructed.shape}"
 
-        B,H,W,D,C = x_vol.shape
-        N = B*H*W*D*C
-
         l2_loss = tf.reduce_mean(tf.square(x_vol - x_reconstructed))
-        kl_loss = (1/N) * tf.reduce_sum(tf.math.exp(z_var) + tf.square(z_mean) -1.0 - z_var, axis=0)
-
-        vae_loss = self.weight_l2 * l2_loss + self.weight_kl * kl_loss
-
-        return vae_loss
+        
+        return l2_loss
 
     def get_config(self):
-        conifg = super().get_config()
-        conifg.update({
-            'weight_l2': self.weight_l2,
-            'weight_kl': self.weight_kl
-        })
-        return conifg
+        return super().get_config()
 
     @classmethod
     def from_config(cls, config):
@@ -167,23 +154,21 @@ class VAE_loss(tf.keras.losses.Loss):
 if __name__ == "__main__":
     y_pred = tf.cast(tf.greater(tf.abs(tf.random.normal([1,160,192,128,3])), 0.5), dtype=tf.float32)
     y_mask = tf.cast(tf.greater(tf.abs(tf.random.normal([1,160,192,128,3])), 0.5), dtype=tf.float32)
-    z_mean = tf.random.normal([1,128])
-    z_var = tf.random.normal([1,128])
 
 
     soft_dice_loss  = SoftDiceLoss(name='sotf_dice_loss') 
     w_bce_dice_loss = WBCEDICELoss(name='w_bce_dice_loss')
     focal_tversky_loss = FocalTverskyLoss(name='FTL', gamma=1)
-    vae_loss = VAE_loss(name='vae_loss')
+    l2_loss = L2loss(name='l2_loss')
 
     total_soft_dice_loss    =  soft_dice_loss(y_mask,y_pred)
     total_w_bce_dice_loss   =  w_bce_dice_loss(y_mask,y_pred)
     total_ftl               =  focal_tversky_loss(y_mask,y_pred)
-    total_vae_loss          =  vae_loss(y_mask, y_pred, z_mean, z_var)
+    total_l2_loss          =  l2_loss(y_mask, y_pred)
 
     tf.print(
         f"soft_dice_loss    : {total_soft_dice_loss}\n",
         f"w_bce_dice_loss   : {total_w_bce_dice_loss}\n",
         f"focal Tversky loss: {total_ftl}\n",
-        f"vae loss          : {total_vae_loss}\n",
+        f"vae loss          : {total_l2_loss}\n",
         )
