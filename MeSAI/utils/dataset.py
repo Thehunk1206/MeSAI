@@ -162,6 +162,9 @@ class TfdataPipeline:
             if label.numpy() != 0:
                 label = seg_vol == label.numpy()
                 channel_label.append(label)
+        if len(channel_label) == 2:
+            channel_label.append(tf.zeros_like(seg_vol))
+        
         final_seg_vol = tf.stack(channel_label, axis=-1)
         final_seg_vol = tf.cast(final_seg_vol, dtype=tf.float32)
         
