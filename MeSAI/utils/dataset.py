@@ -163,7 +163,7 @@ class TfdataPipeline:
                 label = seg_vol == label.numpy()
                 channel_label.append(label)
         if len(channel_label) == 2:
-            channel_label.append(tf.zeros_like(seg_vol))
+            channel_label.append(tf.cast(tf.zeros_like(seg_vol), tf.bool))
         
         final_seg_vol = tf.stack(channel_label, axis=-1)
         final_seg_vol = tf.cast(final_seg_vol, dtype=tf.float32)
@@ -217,7 +217,7 @@ if __name__ == "__main__":
     
 
     tfdatapipeline = TfdataPipeline(BASE_DATASET_DIR="BraTS_2020/", IMG_H=128, IMG_W=172, IMG_D=128)
-    train_data = tfdatapipeline.data_loader(dataset_type='test')
+    train_data = tfdatapipeline.data_loader(dataset_type='train')
 
     for img_vol, seg_vol in train_data.take(2):
         tf.print(
