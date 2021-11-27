@@ -89,6 +89,7 @@ class Decoder3D(tf.keras.layers.Layer):
             padding='same',
             kernel_regularizer=tf.keras.regularizers.L2(self._L2_reg_f)
         )
+        self.conv_module_4 = Conv3d_module(filters=16)
 
         self.conv_5 = tf.keras.layers.Conv3D(
             filters=self.number_of_class,
@@ -156,7 +157,8 @@ class Decoder3D(tf.keras.layers.Layer):
         if self.enable_deepsupervision:
             x_out_32  = self.aux_out_3(x)
 
-        x         = self.conv_4(x)              # out 16 channels
+        x         = self.conv_4(x)            
+        x         = self.conv_module_4(x)      # out 16 channels
         if self.enable_deepsupervision:
             x_out_16  = self.aux_out_4(x)
 

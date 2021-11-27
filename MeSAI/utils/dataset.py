@@ -162,6 +162,8 @@ class TfdataPipeline:
             if label.numpy() != 0:
                 label = seg_vol == label.numpy()
                 channel_label.append(label)
+        
+        # Hardcoded for 3 labels
         if len(channel_label) == 2:
             channel_label.append(tf.cast(tf.zeros_like(seg_vol), tf.bool))
         
